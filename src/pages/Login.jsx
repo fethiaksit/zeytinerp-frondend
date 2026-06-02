@@ -33,7 +33,15 @@ export default function Login() {
       console.log("Login saved token:", token);
       navigate("/");
     } catch (apiError) {
-      setError(apiError?.code === "ERR_NETWORK" ? "Sunucuya bağlanılamadı" : "Kullanıcı adı veya şifre hatalı");
+      console.log("Login error status:", apiError?.response?.status);
+      console.log("Login error data:", apiError?.response?.data);
+
+      if (!apiError?.response) {
+        setError("Sunucuya bağlanılamadı");
+        return;
+      }
+
+      setError("Kullanıcı adı veya şifre hatalı");
     } finally {
       setLoading(false);
     }

@@ -8,6 +8,12 @@ function normalizeApiBaseUrl(url) {
   return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
 }
 
+function requestUrl(endpoint) {
+  const baseUrl = String(api.defaults.baseURL || "").replace(/\/+$/, "");
+  const path = String(endpoint || "").startsWith("/") ? endpoint : `/${endpoint}`;
+  return `${baseUrl}${path}`;
+}
+
 export const api = axios.create({
   baseURL: normalizeApiBaseUrl(configuredBaseUrl),
   headers: {
@@ -100,7 +106,7 @@ function mergeBalances(rows, balances, fallbackKey) {
 
 export const getErrorMessage = (error) =>
   error?.code === "ERR_NETWORK"
-    ? "Backend bağlantısı kurulamadı. Go API'nin http://localhost:8081/api adresinde çalıştığını kontrol edin."
+    ? `Backend bağlantısı kurulamadı. API adresini kontrol edin: ${api.defaults.baseURL}`
     : (typeof error?.response?.data === "string" ? error.response.data : null) ||
       error?.response?.data?.message ||
       error?.response?.data?.error ||
@@ -113,7 +119,10 @@ export const healthApi = {
 };
 
 export const authApi = {
-  login: (payload) => api.post("/auth/login", payload).then(dataOf),
+  login: (payload) => {
+    console.log("Login request URL:", requestUrl("/auth/login"));
+    return api.post("/auth/login", payload).then(dataOf);
+  },
 };
 
 export const dashboardApi = {

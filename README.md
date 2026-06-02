@@ -3,13 +3,13 @@
 React + Vite ile hazırlanmış Türkçe market ERP admin panelidir. Backend varsayılan olarak şu adrese bağlanır:
 
 ```text
-http://localhost:8081/api
+http://zeytinerp.herevemarket.com/api
 ```
 
 Gerekirse `.env` dosyasında değiştirebilirsiniz:
 
 ```text
-VITE_API_URL=http://localhost:8081/api
+VITE_API_URL=http://zeytinerp.herevemarket.com/api
 ```
 
 ## Kurulum
