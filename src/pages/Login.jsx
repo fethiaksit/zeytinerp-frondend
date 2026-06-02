@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { authApi } from "../services/api.js";
-import { getToken, saveAuth } from "../utils/auth.js";
-import { navigate } from "../utils/router.js";
 
 export default function Login() {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -9,7 +7,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (getToken()) navigate("/");
+    const token = localStorage.getItem("zeytinerp_token");
+    if (token) {
+      window.location.href = "/";
+    }
   }, []);
 
   const submit = async (event) => {
@@ -29,9 +30,11 @@ export default function Login() {
         return;
       }
 
-      saveAuth(token, result?.user || {});
+      const user = result?.user || {};
+      localStorage.setItem("zeytinerp_token", token);
+      localStorage.setItem("zeytinerp_user", JSON.stringify(user));
       console.log("Login saved token:", token);
-      navigate("/");
+      window.location.href = "/";
     } catch (apiError) {
       console.log("Login error status:", apiError?.response?.status);
       console.log("Login error data:", apiError?.response?.data);
