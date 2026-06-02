@@ -30,6 +30,7 @@ export default function Login() {
       }
 
       saveAuth(token, result?.user || {});
+      console.log("Login saved token:", token);
       navigate("/");
     } catch (apiError) {
       setError(apiError?.code === "ERR_NETWORK" ? "Sunucuya bağlanılamadı" : "Kullanıcı adı veya şifre hatalı");

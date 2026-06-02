@@ -1,6 +1,5 @@
 import axios from "axios";
 import { clearAuth, getToken } from "../utils/auth.js";
-import { navigate } from "../utils/router.js";
 
 const configuredBaseUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:8081/api";
 
@@ -38,7 +37,7 @@ api.interceptors.response.use(
   (error) => {
     if (error?.response?.status === 401) {
       clearAuth();
-      if (window.location.pathname !== "/login") navigate("/login");
+      if (window.location.pathname !== "/login") window.location.href = "/login";
     }
     return Promise.reject(error);
   },

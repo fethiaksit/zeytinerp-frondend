@@ -1,12 +1,14 @@
 import { useEffect } from "react";
-import { getToken } from "../utils/auth.js";
-import { navigate } from "../utils/router.js";
 
 export default function ProtectedRoute({ children, fallback = null }) {
-  const token = getToken();
+  const token = localStorage.getItem("zeytinerp_token");
+  console.log("ProtectedRoute token:", token);
 
   useEffect(() => {
-    if (!token) navigate("/login");
+    if (!token && window.location.pathname !== "/login") {
+      window.history.replaceState({}, "", "/login");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
   }, [token]);
 
   if (!token) return fallback;
