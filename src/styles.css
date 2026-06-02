@@ -39,6 +39,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
 textarea {
   min-height: 86px;
   resize: vertical;
@@ -53,6 +58,8 @@ textarea {
 .sidebar {
   position: sticky;
   top: 0;
+  display: flex;
+  flex-direction: column;
   height: 100vh;
   padding: 24px 18px;
   background: #203328;
@@ -91,6 +98,11 @@ textarea {
 .nav-list {
   display: grid;
   gap: 8px;
+}
+
+.logout-button {
+  margin-top: auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .nav-item {
@@ -484,6 +496,56 @@ label {
 
 .toast.success {
   background: var(--primary-dark);
+}
+
+.login-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(135deg, rgba(46, 125, 79, 0.12), rgba(229, 147, 49, 0.1)),
+    var(--bg);
+}
+
+.login-card {
+  width: min(430px, 100%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 28px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.login-brand h1 {
+  margin-bottom: 3px;
+}
+
+.login-brand p {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.login-form {
+  display: grid;
+  gap: 14px;
+}
+
+.login-error {
+  border: 1px solid #efc8c1;
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: #fff5f3;
+  color: var(--danger);
+  font-size: 0.9rem;
+  font-weight: 800;
 }
 
 @media (max-width: 1120px) {

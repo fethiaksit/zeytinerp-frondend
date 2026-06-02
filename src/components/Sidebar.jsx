@@ -1,3 +1,6 @@
+import { clearAuth } from "../utils/auth.js";
+import { navigate } from "../utils/router.js";
+
 const links = [
   { path: "/", label: "Dashboard", icon: "▣" },
   { path: "/firmalar", label: "Firmalar", icon: "◆" },
@@ -16,6 +19,12 @@ function isActive(activePath, linkPath) {
 }
 
 export default function Sidebar({ activePath, open, onClose }) {
+  const logout = () => {
+    clearAuth();
+    onClose();
+    navigate("/login");
+  };
+
   return (
     <>
       <aside className={`sidebar ${open ? "open" : ""}`}>
@@ -39,6 +48,10 @@ export default function Sidebar({ activePath, open, onClose }) {
             </a>
           ))}
         </nav>
+        <button className="nav-item logout-button" type="button" onClick={logout}>
+          <span>⎋</span>
+          Çıkış Yap
+        </button>
       </aside>
       {open && <button className="sidebar-backdrop" type="button" aria-label="Menüyü kapat" onClick={onClose} />}
     </>

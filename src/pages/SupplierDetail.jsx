@@ -52,32 +52,12 @@ export default function SupplierDetail({ params, notify }) {
     }
   };
 
-  const removeTransaction = async (row) => {
-    if (!window.confirm("Firma hareketi silinsin mi?")) return;
-    try {
-      await supplierTransactionsApi.remove(row.id);
-      notify("Firma hareketi silindi.", "success");
-      load();
-    } catch (error) {
-      notify(getErrorMessage(error));
-    }
-  };
-
   const columns = [
     { key: "transaction_date", header: "Tarih", render: (row) => dateTR(row.transaction_date) },
     { key: "type", header: "Tip", render: (row) => supplierTransactionLabel(row.type) },
     { key: "payment_method", header: "Ödeme" },
     { key: "amount", header: "Tutar", align: "right", render: (row) => money(row.amount) },
     { key: "note", header: "Not" },
-    {
-      key: "actions",
-      header: "İşlem",
-      render: (row) => (
-        <button className="danger-button" type="button" onClick={() => removeTransaction(row)}>
-          Sil
-        </button>
-      ),
-    },
   ];
 
   return (

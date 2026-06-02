@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "./components/Layout.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Suppliers from "./pages/Suppliers.jsx";
 import SupplierDetail from "./pages/SupplierDetail.jsx";
@@ -11,6 +12,7 @@ import FinancialDebts from "./pages/FinancialDebts.jsx";
 import FinancialAlerts from "./pages/FinancialAlerts.jsx";
 import Expenses from "./pages/Expenses.jsx";
 import IncomeEntries from "./pages/IncomeEntries.jsx";
+import Login from "./pages/Login.jsx";
 import Reports from "./pages/Reports.jsx";
 const routes = [
   { path: "/", title: "Dashboard", component: Dashboard },
@@ -59,6 +61,7 @@ export default function App() {
     return () => window.clearTimeout(timeout);
   }, [toast]);
 
+  const isLoginPage = pathname === "/login";
   const route = useMemo(() => getRoute(pathname), [pathname]);
   const Page = route.component;
 
@@ -68,9 +71,15 @@ export default function App() {
 
   return (
     <>
-      <Layout activePath={pathname} title={route.title}>
-        <Page params={route.params || {}} notify={notify} />
-      </Layout>
+      {isLoginPage ? (
+        <Login />
+      ) : (
+        <ProtectedRoute fallback={<Login />}>
+          <Layout activePath={pathname} title={route.title}>
+            <Page params={route.params || {}} notify={notify} />
+          </Layout>
+        </ProtectedRoute>
+      )}
       {toast && (
         <div className={`toast ${toast.type}`} role="status">
           {toast.message}

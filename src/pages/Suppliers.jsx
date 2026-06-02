@@ -70,17 +70,6 @@ export default function Suppliers({ notify }) {
     }
   };
 
-  const remove = async (supplier) => {
-    if (!window.confirm(`${supplier.name} silinsin mi?`)) return;
-    try {
-      await suppliersApi.remove(supplier.id);
-      notify("Firma silindi.", "success");
-      load();
-    } catch (error) {
-      notify(getErrorMessage(error));
-    }
-  };
-
   const columns = [
     { key: "name", header: "Firma" },
     { key: "phone", header: "Telefon" },
@@ -106,9 +95,6 @@ export default function Suppliers({ notify }) {
           </button>
           <button className="ghost-button" type="button" onClick={() => openEdit(row)}>
             Düzenle
-          </button>
-          <button className="danger-button" type="button" onClick={() => remove(row)}>
-            Sil
           </button>
         </div>
       ),

@@ -1,4 +1,6 @@
 import axios from "axios";
+import { clearAuth, getToken } from "../utils/auth.js";
+import { navigate } from "../utils/router.js";
 
 const configuredBaseUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:8081/api";
 
@@ -18,11 +20,29 @@ api.interceptors.request.use((config) => {
   const method = (config.method || "GET").toUpperCase();
   const endpoint = config.url || "";
   const url = `${config.baseURL || ""}${config.url || ""}`;
+  const token = getToken();
+
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
   console.log("API URL:", import.meta.env.VITE_API_URL);
   console.log("Request endpoint:", endpoint);
   console.log("API Request:", method, url, config.data);
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      clearAuth();
+      if (window.location.pathname !== "/login") navigate("/login");
+    }
+    return Promise.reject(error);
+  },
+);
 
 function dataOf(response) {
   const body = response.data;
@@ -91,6 +111,10 @@ export const getErrorMessage = (error) =>
 
 export const healthApi = {
   check: () => api.get("../health").then(dataOf),
+};
+
+export const authApi = {
+  login: (payload) => api.post("/auth/login", payload).then(dataOf),
 };
 
 export const dashboardApi = {
