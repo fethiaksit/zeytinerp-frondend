@@ -26,6 +26,19 @@ const routes = [
   { path: "/raporlar", title: "Raporlar", component: Reports },
 ];
 
+function readToken() {
+  return localStorage.getItem("zeytinerp_token");
+}
+
+function getInitialPathname() {
+  const pathname = window.location.pathname;
+  if (pathname !== "/login" && !readToken()) {
+    window.history.replaceState({}, "", "/login");
+    return "/login";
+  }
+  return pathname;
+}
+
 function getRoute(pathname) {
   const supplierMatch = pathname.match(/^\/firmalar\/([^/]+)$/);
   if (supplierMatch) {
@@ -46,7 +59,7 @@ function getRoute(pathname) {
 }
 
 export default function App() {
-  const [pathname, setPathname] = useState(window.location.pathname);
+  const [pathname, setPathname] = useState(getInitialPathname);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -62,8 +75,16 @@ export default function App() {
   }, [toast]);
 
   const isLoginPage = pathname === "/login";
+  const token = readToken();
   const route = useMemo(() => getRoute(pathname), [pathname]);
   const Page = route.component;
+
+  useEffect(() => {
+    if (!token && !isLoginPage) {
+      window.history.replaceState({}, "", "/login");
+      setPathname("/login");
+    }
+  }, [isLoginPage, token]);
 
   const notify = (message, type = "error") => {
     setToast({ message, type });
@@ -73,8 +94,10 @@ export default function App() {
     <>
       {isLoginPage ? (
         <Login />
+      ) : !token ? (
+        <Login />
       ) : (
-        <ProtectedRoute fallback={<Login />}>
+        <ProtectedRoute>
           <Layout activePath={pathname} title={route.title}>
             <Page params={route.params || {}} notify={notify} />
           </Layout>

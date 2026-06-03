@@ -1,5 +1,4 @@
 import { clearAuth } from "../utils/auth.js";
-import { navigate } from "../utils/router.js";
 
 const links = [
   { path: "/", label: "Dashboard", icon: "▣" },
@@ -22,7 +21,7 @@ export default function Sidebar({ activePath, open, onClose }) {
   const logout = () => {
     clearAuth();
     onClose();
-    navigate("/login");
+    window.location.href = "/login";
   };
 
   return (

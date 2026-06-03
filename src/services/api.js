@@ -26,6 +26,12 @@ api.interceptors.request.use((config) => {
   const endpoint = config.url || "";
   const url = `${config.baseURL || ""}${config.url || ""}`;
   const token = getToken();
+  const isPublicRequest = endpoint === "/auth/login" || endpoint === "../health";
+
+  if (!token && !isPublicRequest) {
+    if (window.location.pathname !== "/login") window.location.href = "/login";
+    return Promise.reject(new Error("Oturum gerekli"));
+  }
 
   if (token) {
     config.headers = config.headers || {};
@@ -43,6 +49,7 @@ api.interceptors.response.use(
   (error) => {
     if (error?.response?.status === 401) {
       clearAuth();
+      sessionStorage.setItem("zeytinerp_auth_message", "Oturum süresi doldu. Lütfen tekrar giriş yapın.");
       if (window.location.pathname !== "/login") window.location.href = "/login";
     }
     return Promise.reject(error);

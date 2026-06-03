@@ -7,6 +7,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const authMessage = sessionStorage.getItem("zeytinerp_auth_message");
+    if (authMessage) {
+      setError(authMessage);
+      sessionStorage.removeItem("zeytinerp_auth_message");
+    }
+
     const token = localStorage.getItem("zeytinerp_token");
     if (token) {
       window.location.href = "/";
