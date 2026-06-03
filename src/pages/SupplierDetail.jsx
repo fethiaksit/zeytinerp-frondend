@@ -38,6 +38,7 @@ export default function SupplierDetail({ params, notify }) {
   const [invoiceFiles, setInvoiceFiles] = useState([]);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const [fileModal, setFileModal] = useState({ open: false, transaction: null, files: [], loading: false });
   const [deletingFileId, setDeletingFileId] = useState(null);
 
@@ -76,10 +77,13 @@ export default function SupplierDetail({ params, notify }) {
         if (!transactionId) throw new Error("Oluşan fatura hareketi bulunamadı.");
 
         try {
+          setUploadingFiles(true);
           await supplierTransactionFiles.upload(transactionId, invoiceFiles);
         } catch {
           uploadFailed = true;
           notify("Fatura dosyası yüklenemedi");
+        } finally {
+          setUploadingFiles(false);
         }
       }
 
@@ -92,6 +96,7 @@ export default function SupplierDetail({ params, notify }) {
       notify(getErrorMessage(error));
     } finally {
       setSaving(false);
+      setUploadingFiles(false);
     }
   };
 
@@ -150,11 +155,11 @@ export default function SupplierDetail({ params, notify }) {
       header: "Fatura",
       render: (row) => {
         const fileCount = readFileCount(row);
-        if (!isInvoice(row) || fileCount === 0) return "-";
+        if (!isInvoice(row)) return "-";
 
         return (
           <div className="row-actions">
-            <span className="badge info">📎 Fatura</span>
+            {fileCount > 0 && <span className="badge info">📎 Fatura</span>}
             <button className="secondary-button" type="button" onClick={() => openFileModal(row)}>
               Faturaları Gör
             </button>
@@ -248,6 +253,24 @@ export default function SupplierDetail({ params, notify }) {
                 Fatura No
                 <input value={form.invoice_no} onChange={(e) => setForm({ ...form, invoice_no: e.target.value })} />
               </label>
+              <div className="span-2 file-upload-box">
+                <label>
+                  Fatura Görselleri / PDF
+                  <input key={fileInputKey} type="file" multiple accept="image/*,.pdf" onChange={selectInvoiceFiles} />
+                </label>
+                {invoiceFiles.length > 0 && (
+                  <div className="selected-files">
+                    {invoiceFiles.map((file, index) => (
+                      <div className="file-row" key={`${file.name}-${file.size}-${index}`}>
+                        <span className="file-order">{index + 1}</span>
+                        <strong>{file.name}</strong>
+                        <small>{formatFileSize(file.size)}</small>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {uploadingFiles && <div className="state-box compact">Fatura dosyaları yükleniyor...</div>}
+              </div>
               <label className="span-2">
                 Açıklama
                 <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
@@ -296,23 +319,6 @@ export default function SupplierDetail({ params, notify }) {
                   required
                 />
               </label>
-              <div className="span-2 file-upload-box">
-                <label>
-                  Fatura Görselleri / PDF
-                  <input key={fileInputKey} type="file" multiple accept="image/*,.pdf" onChange={selectInvoiceFiles} />
-                </label>
-                {invoiceFiles.length > 0 && (
-                  <div className="selected-files">
-                    {invoiceFiles.map((file, index) => (
-                      <div className="file-row" key={`${file.name}-${file.size}-${index}`}>
-                        <span className="file-order">{index + 1}</span>
-                        <strong>{file.name}</strong>
-                        <small>{formatFileSize(file.size)}</small>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
               <label className="span-2">
                 Açıklama
                 <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
@@ -322,7 +328,7 @@ export default function SupplierDetail({ params, notify }) {
 
           <div className="form-actions span-2">
             <button className="primary-button" type="submit" disabled={saving}>
-              {saving ? "Kaydediliyor..." : "Hareket Ekle"}
+              {uploadingFiles ? "Fatura dosyaları yükleniyor..." : saving ? "Kaydediliyor..." : "Hareket Ekle"}
             </button>
           </div>
         </form>
@@ -364,7 +370,7 @@ export default function SupplierDetail({ params, notify }) {
                   </div>
                   {isPdf ? (
                     <a className="file-link" href={fileUrl} target="_blank" rel="noreferrer">
-                      PDF Dosyasını Aç
+                      PDF Aç
                     </a>
                   ) : (
                     <img src={fileUrl} alt={fileName} />

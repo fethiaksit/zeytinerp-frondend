@@ -602,6 +602,12 @@ label {
   background: #fbfcfa;
 }
 
+.state-box.compact {
+  min-height: 44px;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
 .modal-layer {
   position: fixed;
   inset: 0;
