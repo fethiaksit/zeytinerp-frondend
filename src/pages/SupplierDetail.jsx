@@ -65,23 +65,38 @@ export default function SupplierDetail({ params, notify }) {
     load();
   }, [params.id]);
 
+  useEffect(() => {
+    console.log("Selected invoice files:", invoiceFiles);
+  }, [invoiceFiles]);
+
   const saveTransaction = async (event) => {
     event.preventDefault();
     setSaving(true);
     try {
+      const unsupportedFiles = invoiceFiles.filter((file) => !isSupportedFile(file));
+      if (form.type === "invoice" && unsupportedFiles.length > 0) {
+        notify("Sadece jpg, jpeg, png, webp veya pdf dosyası seçilebilir.");
+        return;
+      }
+
       const createdTransaction = await supplierTransactionsApi.create(buildTransactionPayload(form, params.id));
       const transactionId = readTransactionId(createdTransaction);
       let uploadFailed = false;
+      let uploadedFiles = false;
+      console.log("Created transaction id:", transactionId);
 
       if (form.type === "invoice" && invoiceFiles.length > 0) {
         if (!transactionId) throw new Error("Oluşan fatura hareketi bulunamadı.");
 
         try {
+          console.log("Uploading invoice files:", invoiceFiles.length);
           setUploadingFiles(true);
           await supplierTransactionFiles.upload(transactionId, invoiceFiles);
-        } catch {
+          uploadedFiles = true;
+          notify("Fatura dosyaları yüklendi", "success");
+        } catch (uploadError) {
           uploadFailed = true;
-          notify("Fatura dosyası yüklenemedi");
+          notify(`Fatura hareketi kaydedildi ama dosyalar yüklenemedi: ${getErrorMessage(uploadError)}`);
         } finally {
           setUploadingFiles(false);
         }
@@ -90,7 +105,7 @@ export default function SupplierDetail({ params, notify }) {
       setForm(emptyTransaction);
       setInvoiceFiles([]);
       setFileInputKey((key) => key + 1);
-      if (!uploadFailed) notify("Firma hareketi eklendi.", "success");
+      if (!uploadFailed && !uploadedFiles) notify("Firma hareketi eklendi.", "success");
       load();
     } catch (error) {
       notify(getErrorMessage(error));
@@ -98,17 +113,6 @@ export default function SupplierDetail({ params, notify }) {
       setSaving(false);
       setUploadingFiles(false);
     }
-  };
-
-  const selectInvoiceFiles = (event) => {
-    const selectedFiles = Array.from(event.target.files || []);
-    const validFiles = selectedFiles.filter(isSupportedFile);
-
-    if (validFiles.length !== selectedFiles.length) {
-      notify("Sadece jpg, jpeg, png, webp veya pdf dosyası seçilebilir.");
-    }
-
-    setInvoiceFiles(validFiles);
   };
 
   const openFileModal = async (transaction) => {
@@ -256,7 +260,13 @@ export default function SupplierDetail({ params, notify }) {
               <div className="span-2 file-upload-box">
                 <label>
                   Fatura Görselleri / PDF
-                  <input key={fileInputKey} type="file" multiple accept="image/*,.pdf" onChange={selectInvoiceFiles} />
+                  <input
+                    key={fileInputKey}
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf"
+                    onChange={(e) => setInvoiceFiles(Array.from(e.target.files || []))}
+                  />
                 </label>
                 {invoiceFiles.length > 0 && (
                   <div className="selected-files">
@@ -449,7 +459,18 @@ function isInvoice(row) {
 }
 
 function readTransactionId(transaction) {
-  return transaction?.id ?? transaction?.transaction_id ?? transaction?.supplier_transaction_id;
+  return (
+    transaction?.id ??
+    transaction?.data?.id ??
+    transaction?.transaction?.id ??
+    transaction?.data?.transaction?.id ??
+    transaction?.supplier_transaction?.id ??
+    transaction?.data?.supplier_transaction?.id ??
+    transaction?.transaction_id ??
+    transaction?.data?.transaction_id ??
+    transaction?.supplier_transaction_id ??
+    transaction?.data?.supplier_transaction_id
+  );
 }
 
 function readFileId(file) {
