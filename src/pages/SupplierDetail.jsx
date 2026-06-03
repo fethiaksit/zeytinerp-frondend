@@ -73,33 +73,45 @@ export default function SupplierDetail({ params, notify }) {
     event.preventDefault();
     setSaving(true);
     try {
-      const unsupportedFiles = invoiceFiles.filter((file) => !isSupportedFile(file));
+      const filesToUpload = Array.from(invoiceFiles || []);
+      console.log("Selected invoice files", filesToUpload);
+
+      const unsupportedFiles = filesToUpload.filter((file) => !isSupportedFile(file));
       if (form.type === "invoice" && unsupportedFiles.length > 0) {
         notify("Sadece jpg, jpeg, png, webp veya pdf dosyası seçilebilir.");
         return;
       }
 
       const createdTransaction = await supplierTransactionsApi.create(buildTransactionPayload(form, params.id));
+      console.log("Created transaction response", createdTransaction);
       const transactionId = readTransactionId(createdTransaction);
       let uploadFailed = false;
       let uploadedFiles = false;
-      console.log("Created transaction id:", transactionId);
+      console.log("Created transaction id", transactionId);
 
-      if (form.type === "invoice" && invoiceFiles.length > 0) {
-        if (!transactionId) throw new Error("Oluşan fatura hareketi bulunamadı.");
-
-        try {
-          console.log("Uploading invoice files:", invoiceFiles.length);
-          setUploadingFiles(true);
-          await supplierTransactionFiles.upload(transactionId, invoiceFiles);
-          uploadedFiles = true;
-          notify("Fatura dosyaları yüklendi", "success");
-        } catch (uploadError) {
+      if (form.type === "invoice" && filesToUpload.length > 0) {
+        if (!transactionId) {
           uploadFailed = true;
-          notify(`Fatura hareketi kaydedildi ama dosyalar yüklenemedi: ${getErrorMessage(uploadError)}`);
-        } finally {
-          setUploadingFiles(false);
+          notify("Fatura hareketi kaydedildi ama dosyalar yüklenemedi: transaction id alınamadı");
+        } else {
+          try {
+            console.log("Uploading files count", filesToUpload.length);
+            setUploadingFiles(true);
+            await supplierTransactionFiles.upload(transactionId, filesToUpload);
+            uploadedFiles = true;
+            notify("Fatura dosyaları yüklendi", "success");
+          } catch (uploadError) {
+            uploadFailed = true;
+            notify(`Fatura hareketi kaydedildi ama dosyalar yüklenemedi: ${getErrorMessage(uploadError)}`);
+          } finally {
+            setUploadingFiles(false);
+          }
         }
+      }
+
+      if (uploadFailed) {
+        load();
+        return;
       }
 
       setForm(emptyTransaction);
