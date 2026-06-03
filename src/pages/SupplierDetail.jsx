@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import DataTable from "../components/DataTable.jsx";
+import Modal from "../components/Modal.jsx";
 import StatCard from "../components/StatCard.jsx";
-import { getErrorMessage, supplierTransactionsApi, suppliersApi } from "../services/api.js";
+import { api, getErrorMessage, supplierTransactionFiles, supplierTransactionsApi, suppliersApi } from "../services/api.js";
 import {
   dateTR,
   money,
@@ -27,11 +28,18 @@ const transactionTypes = [
   { value: "return", label: "İade" },
 ];
 
+const supportedFileTypes = ["jpg", "jpeg", "png", "webp", "pdf"];
+
 export default function SupplierDetail({ params, notify }) {
   const [supplier, setSupplier] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyTransaction);
+  const [invoiceFiles, setInvoiceFiles] = useState([]);
+  const [fileInputKey, setFileInputKey] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [fileModal, setFileModal] = useState({ open: false, transaction: null, files: [], loading: false });
+  const [deletingFileId, setDeletingFileId] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -41,8 +49,10 @@ export default function SupplierDetail({ params, notify }) {
         suppliersApi.balance(params.id),
         supplierTransactionsApi.list({ supplier_id: params.id }),
       ]);
+      const rows = Array.isArray(transactionData) ? transactionData : [];
+      const rowsWithFiles = await attachInvoiceFiles(rows);
       setSupplier({ ...supplierData, current_debt: balanceData?.balance ?? balanceData?.current_debt ?? balanceData?.debt ?? balanceData });
-      setTransactions(transactionData);
+      setTransactions(rowsWithFiles);
     } catch (error) {
       notify(getErrorMessage(error));
     } finally {
@@ -56,13 +66,78 @@ export default function SupplierDetail({ params, notify }) {
 
   const saveTransaction = async (event) => {
     event.preventDefault();
+    setSaving(true);
     try {
-      await supplierTransactionsApi.create(buildTransactionPayload(form, params.id));
+      const createdTransaction = await supplierTransactionsApi.create(buildTransactionPayload(form, params.id));
+      const transactionId = readTransactionId(createdTransaction);
+      let uploadFailed = false;
+
+      if (form.type === "invoice" && invoiceFiles.length > 0) {
+        if (!transactionId) throw new Error("Oluşan fatura hareketi bulunamadı.");
+
+        try {
+          await supplierTransactionFiles.upload(transactionId, invoiceFiles);
+        } catch {
+          uploadFailed = true;
+          notify("Fatura dosyası yüklenemedi");
+        }
+      }
+
       setForm(emptyTransaction);
-      notify("Firma hareketi eklendi.", "success");
+      setInvoiceFiles([]);
+      setFileInputKey((key) => key + 1);
+      if (!uploadFailed) notify("Firma hareketi eklendi.", "success");
       load();
     } catch (error) {
       notify(getErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const selectInvoiceFiles = (event) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    const validFiles = selectedFiles.filter(isSupportedFile);
+
+    if (validFiles.length !== selectedFiles.length) {
+      notify("Sadece jpg, jpeg, png, webp veya pdf dosyası seçilebilir.");
+    }
+
+    setInvoiceFiles(validFiles);
+  };
+
+  const openFileModal = async (transaction) => {
+    setFileModal({ open: true, transaction, files: transaction._files || [], loading: true });
+    try {
+      const files = asArray(await supplierTransactionFiles.list(transaction.id));
+      setFileModal({ open: true, transaction, files, loading: false });
+    } catch (error) {
+      setFileModal({ open: true, transaction, files: transaction._files || [], loading: false });
+      notify(getErrorMessage(error));
+    }
+  };
+
+  const removeFile = async (file) => {
+    const fileId = readFileId(file);
+    if (!fileId) return;
+
+    setDeletingFileId(fileId);
+    try {
+      await supplierTransactionFiles.remove(fileId);
+      const nextFiles = fileModal.files.filter((item) => readFileId(item) !== fileId);
+      setFileModal({ ...fileModal, files: nextFiles });
+      setTransactions((rows) =>
+        rows.map((row) =>
+          row.id === fileModal.transaction?.id
+            ? { ...row, _files: nextFiles, _file_count: nextFiles.length, files: nextFiles }
+            : row,
+        ),
+      );
+      notify("Fatura dosyası silindi.", "success");
+    } catch (error) {
+      notify(getErrorMessage(error));
+    } finally {
+      setDeletingFileId(null);
     }
   };
 
@@ -70,6 +145,23 @@ export default function SupplierDetail({ params, notify }) {
     { key: "transaction_date", header: "Tarih", render: (row) => dateTR(row.transaction_date) },
     { key: "type", header: "Tip", render: (row) => supplierTransactionLabel(row.type) },
     { key: "invoice_no", header: "Fatura No", render: (row) => row.invoice_no || "-" },
+    {
+      key: "files",
+      header: "Fatura",
+      render: (row) => {
+        const fileCount = readFileCount(row);
+        if (!isInvoice(row) || fileCount === 0) return "-";
+
+        return (
+          <div className="row-actions">
+            <span className="badge info">📎 Fatura</span>
+            <button className="secondary-button" type="button" onClick={() => openFileModal(row)}>
+              Faturaları Gör
+            </button>
+          </div>
+        );
+      },
+    },
     { key: "payment_method", header: "Ödeme", render: (row) => (row.payment_method ? supplierPaymentMethodLabel(row.payment_method) : "-") },
     {
       key: "amount",
@@ -119,7 +211,11 @@ export default function SupplierDetail({ params, notify }) {
                 key={item.value}
                 className={form.type === item.value ? "active" : ""}
                 type="button"
-                onClick={() => setForm({ ...emptyTransaction, type: item.value, transaction_date: form.transaction_date })}
+                onClick={() => {
+                  setForm({ ...emptyTransaction, type: item.value, transaction_date: form.transaction_date });
+                  setInvoiceFiles([]);
+                  setFileInputKey((key) => key + 1);
+                }}
               >
                 {item.label}
               </button>
@@ -200,6 +296,23 @@ export default function SupplierDetail({ params, notify }) {
                   required
                 />
               </label>
+              <div className="span-2 file-upload-box">
+                <label>
+                  Fatura Görselleri / PDF
+                  <input key={fileInputKey} type="file" multiple accept="image/*,.pdf" onChange={selectInvoiceFiles} />
+                </label>
+                {invoiceFiles.length > 0 && (
+                  <div className="selected-files">
+                    {invoiceFiles.map((file, index) => (
+                      <div className="file-row" key={`${file.name}-${file.size}-${index}`}>
+                        <span className="file-order">{index + 1}</span>
+                        <strong>{file.name}</strong>
+                        <small>{formatFileSize(file.size)}</small>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <label className="span-2">
                 Açıklama
                 <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
@@ -208,8 +321,8 @@ export default function SupplierDetail({ params, notify }) {
           )}
 
           <div className="form-actions span-2">
-            <button className="primary-button" type="submit">
-              Hareket Ekle
+            <button className="primary-button" type="submit" disabled={saving}>
+              {saving ? "Kaydediliyor..." : "Hareket Ekle"}
             </button>
           </div>
         </form>
@@ -220,8 +333,79 @@ export default function SupplierDetail({ params, notify }) {
         </div>
         <DataTable columns={columns} rows={transactions} loading={loading} emptyText="Bu firma için hareket yok." />
       </section>
+      <Modal
+        title={`Faturalar${fileModal.transaction?.invoice_no ? ` - ${fileModal.transaction.invoice_no}` : ""}`}
+        open={fileModal.open}
+        onClose={() => setFileModal({ open: false, transaction: null, files: [], loading: false })}
+      >
+        {fileModal.loading ? (
+          <div className="state-box">Faturalar yükleniyor...</div>
+        ) : fileModal.files.length === 0 ? (
+          <div className="state-box empty">Bu hareket için fatura dosyası yok.</div>
+        ) : (
+          <div className="invoice-preview-list">
+            {fileModal.files.map((file, index) => {
+              const fileUrl = resolveFileUrl(file);
+              const fileName = readFileName(file);
+              const fileId = readFileId(file);
+              const isPdf = isPdfFile(file);
+
+              return (
+                <article className="invoice-preview-item" key={fileId || `${fileName}-${index}`}>
+                  <div className="invoice-preview-header">
+                    <div>
+                      <span className="file-order">{index + 1}</span>
+                      <strong>{fileName}</strong>
+                      <small>{formatFileSize(readFileSize(file))}</small>
+                    </div>
+                    <button className="danger-button" type="button" disabled={deletingFileId === fileId} onClick={() => removeFile(file)}>
+                      {deletingFileId === fileId ? "Siliniyor..." : "Sil"}
+                    </button>
+                  </div>
+                  {isPdf ? (
+                    <a className="file-link" href={fileUrl} target="_blank" rel="noreferrer">
+                      PDF Dosyasını Aç
+                    </a>
+                  ) : (
+                    <img src={fileUrl} alt={fileName} />
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </Modal>
     </div>
   );
+}
+
+async function attachInvoiceFiles(rows) {
+  const invoiceRows = rows.filter((row) => isInvoice(row) && row.id);
+  if (invoiceRows.length === 0) return rows;
+
+  const fileResults = await Promise.allSettled(
+    invoiceRows.map(async (row) => ({
+      transactionId: row.id,
+      files: asArray(await supplierTransactionFiles.list(row.id)),
+    })),
+  );
+
+  const filesByTransaction = new Map();
+  fileResults.forEach((result) => {
+    if (result.status === "fulfilled") {
+      filesByTransaction.set(String(result.value.transactionId), result.value.files);
+    }
+  });
+
+  return rows.map((row) => {
+    const existingFiles = asArray(row.files || row.attachments || row.invoice_files);
+    const files = filesByTransaction.get(String(row.id)) || existingFiles;
+    return {
+      ...row,
+      _files: files,
+      _file_count: files.length || row.file_count || row.files_count || row.invoice_file_count || 0,
+    };
+  });
 }
 
 function buildTransactionPayload(form, supplierId) {
@@ -248,4 +432,63 @@ function buildTransactionPayload(form, supplierId) {
   }
 
   return base;
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function isInvoice(row) {
+  return row?.type === "invoice" || row?.type === "purchase";
+}
+
+function readTransactionId(transaction) {
+  return transaction?.id ?? transaction?.transaction_id ?? transaction?.supplier_transaction_id;
+}
+
+function readFileId(file) {
+  return file?.id ?? file?.file_id ?? file?.supplier_transaction_file_id;
+}
+
+function readFileName(file) {
+  return file?.file_name || file?.filename || file?.name || file?.original_name || "Fatura dosyası";
+}
+
+function readFileSize(file) {
+  return Number(file?.file_size ?? file?.size ?? 0);
+}
+
+function readFileCount(row) {
+  return asArray(row?._files).length || row?.file_count || row?.files_count || row?.invoice_file_count || 0;
+}
+
+function readFilePath(file) {
+  return file?.url || file?.file_url || file?.download_url || file?.path || file?.file_path || "";
+}
+
+function resolveFileUrl(file) {
+  const path = readFilePath(file);
+  if (!path) return "#";
+  if (/^https?:\/\//i.test(path)) return path;
+  if (path.startsWith("/")) return `${new URL(api.defaults.baseURL).origin}${path}`;
+  return `${String(api.defaults.baseURL).replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+}
+
+function fileExtension(name) {
+  return String(name || "").split(".").pop().toLowerCase();
+}
+
+function isSupportedFile(file) {
+  return supportedFileTypes.includes(fileExtension(file.name));
+}
+
+function isPdfFile(file) {
+  const type = file?.mime_type || file?.content_type || file?.type || "";
+  return type.includes("pdf") || fileExtension(readFileName(file)) === "pdf";
+}
+
+function formatFileSize(size) {
+  if (!size) return "Boyut bilinmiyor";
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }

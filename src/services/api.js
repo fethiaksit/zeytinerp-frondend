@@ -38,6 +38,14 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
+  if (config.data instanceof FormData) {
+    if (typeof config.headers.delete === "function") {
+      config.headers.delete("Content-Type");
+    } else {
+      delete config.headers["Content-Type"];
+    }
+  }
+
   console.log("API URL:", import.meta.env.VITE_API_URL);
   console.log("Request endpoint:", endpoint);
   console.log("API Request:", method, url, config.data);
@@ -74,6 +82,10 @@ function dataOf(response) {
     "income_entry",
     "transaction",
     "transactions",
+    "file",
+    "files",
+    "supplier_transaction_file",
+    "supplier_transaction_files",
     "financial_debt",
     "financial_debts",
     "financial_debt_payment",
@@ -156,6 +168,18 @@ export const supplierTransactionsApi = {
   create: (payload) => api.post("/supplier-transactions", payload).then(dataOf),
   remove: (id) => api.delete(`/supplier-transactions/${id}`).then(dataOf),
 };
+
+export const supplierTransactionFiles = {
+  list: (transactionId) => api.get(`/supplier-transactions/${transactionId}/files`).then(dataOf),
+  upload: (transactionId, files) => {
+    const formData = new FormData();
+    Array.from(files || []).forEach((file) => formData.append("files", file));
+    return api.post(`/supplier-transactions/${transactionId}/files`, formData).then(dataOf);
+  },
+  remove: (fileId) => api.delete(`/supplier-transaction-files/${fileId}`).then(dataOf),
+};
+
+export const supplierTransactionFilesApi = supplierTransactionFiles;
 
 export const employeesApi = {
   list: () => api.get("/employees").then(dataOf),
