@@ -45,9 +45,22 @@ export const categoryLabel = (value) =>
 
 export const supplierTransactionLabel = (value) =>
   ({
-    purchase: "Alış / Borç",
+    purchase: "Gelen Fatura",
+    invoice: "Gelen Fatura",
     payment: "Ödeme",
+    return: "İade / Fatura Düşümü",
   })[value] || value || "-";
+
+export const supplierPaymentMethodLabel = (value) =>
+  ({
+    cash: "Nakit",
+    credit_card: "Kredi Kartı",
+    current_account: "Cari",
+    bank_transfer: "Havale/EFT",
+    other: "Diğer",
+  })[value] || value || "-";
+
+export const supplierTransactionTone = (value) => (value === "payment" || value === "return" ? "success" : "danger");
 
 export const employeeTransactionLabel = (value) =>
   ({

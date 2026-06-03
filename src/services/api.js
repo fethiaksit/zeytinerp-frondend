@@ -1,7 +1,7 @@
 import axios from "axios";
 import { clearAuth, getToken } from "../utils/auth.js";
 
-const configuredBaseUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:8081/api";
+const configuredBaseUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://zeytinerp.herevemarket.com/api";
 
 function normalizeApiBaseUrl(url) {
   const trimmed = String(url || "").replace(/\/+$/, "");
@@ -131,9 +131,9 @@ export const dashboardApi = {
 };
 
 export const suppliersApi = {
-  list: () => api.get("/suppliers").then(dataOf),
-  listWithBalances: async () => {
-    const [rows, balances] = await Promise.all([suppliersApi.list(), suppliersApi.balances()]);
+  list: (params = {}) => api.get("/suppliers", { params }).then(dataOf),
+  listWithBalances: async (params = {}) => {
+    const [rows, balances] = await Promise.all([suppliersApi.list(params), suppliersApi.balances()]);
     return mergeBalances(rows, balances, "supplier_id");
   },
   get: (id) => api.get(`/suppliers/${id}`).then(dataOf),

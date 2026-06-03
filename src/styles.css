@@ -309,6 +309,47 @@ td {
   margin-bottom: 16px;
 }
 
+.search-field {
+  width: min(420px, 100%);
+}
+
+.type-switch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fbfcfa;
+}
+
+.type-switch button {
+  min-height: 38px;
+  border: 0;
+  border-radius: calc(var(--radius) - 2px);
+  padding: 0 13px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.type-switch button.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.amount-text {
+  font-weight: 900;
+}
+
+.amount-text.danger {
+  color: var(--danger);
+}
+
+.amount-text.success {
+  color: var(--success);
+}
+
 .primary-button,
 .secondary-button,
 .ghost-button,

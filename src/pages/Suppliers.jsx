@@ -15,17 +15,31 @@ const emptyForm = {
 
 export default function Suppliers({ notify }) {
   const [suppliers, setSuppliers] = useState([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
 
-  const load = async () => {
+  const load = async (searchTerm = search) => {
     setLoading(true);
     try {
-      setSuppliers(await suppliersApi.listWithBalances());
+      const query = searchTerm.trim();
+      const rows = await suppliersApi.listWithBalances(query ? { search: query } : {});
+      setSuppliers(query ? filterSuppliers(rows, query) : rows);
     } catch (error) {
-      notify(getErrorMessage(error));
+      const query = searchTerm.trim();
+      if (!query) {
+        notify(getErrorMessage(error));
+        return;
+      }
+
+      try {
+        const rows = await suppliersApi.listWithBalances();
+        setSuppliers(filterSuppliers(rows, query));
+      } catch (fallbackError) {
+        notify(getErrorMessage(fallbackError));
+      }
     } finally {
       setLoading(false);
     }
@@ -34,6 +48,14 @@ export default function Suppliers({ notify }) {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      load(search);
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [search]);
 
   const openCreate = () => {
     setEditing(null);
@@ -113,6 +135,13 @@ export default function Suppliers({ notify }) {
         </button>
       </div>
 
+      <div className="filter-row">
+        <label className="search-field">
+          <span>Arama</span>
+          <input placeholder="Firma ara..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        </label>
+      </div>
+
       <DataTable columns={columns} rows={suppliers} loading={loading} emptyText="Henüz firma kaydı yok." />
 
       <Modal title={editing ? "Firma Düzenle" : "Firma Ekle"} open={modalOpen} onClose={() => setModalOpen(false)}>
@@ -149,5 +178,12 @@ export default function Suppliers({ notify }) {
         </form>
       </Modal>
     </section>
+  );
+}
+
+function filterSuppliers(rows, searchTerm) {
+  const query = searchTerm.toLocaleLowerCase("tr-TR");
+  return rows.filter((row) =>
+    [row.name, row.phone, row.address, row.note].some((value) => String(value || "").toLocaleLowerCase("tr-TR").includes(query)),
   );
 }

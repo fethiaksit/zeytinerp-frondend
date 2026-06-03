@@ -2,16 +2,30 @@ import { useEffect, useState } from "react";
 import DataTable from "../components/DataTable.jsx";
 import StatCard from "../components/StatCard.jsx";
 import { getErrorMessage, supplierTransactionsApi, suppliersApi } from "../services/api.js";
-import { dateTR, money, supplierTransactionLabel, todayISO } from "../utils/format.js";
+import {
+  dateTR,
+  money,
+  supplierPaymentMethodLabel,
+  supplierTransactionLabel,
+  supplierTransactionTone,
+  todayISO,
+} from "../utils/format.js";
 import { navigate } from "../utils/router.js";
 
 const emptyTransaction = {
   transaction_date: todayISO(),
-  type: "purchase",
+  type: "invoice",
   amount: "",
-  payment_method: "Nakit",
+  invoice_no: "",
+  payment_method: "cash",
   note: "",
 };
+
+const transactionTypes = [
+  { value: "invoice", label: "Gelen Fatura" },
+  { value: "payment", label: "Ödeme" },
+  { value: "return", label: "İade" },
+];
 
 export default function SupplierDetail({ params, notify }) {
   const [supplier, setSupplier] = useState(null);
@@ -43,7 +57,7 @@ export default function SupplierDetail({ params, notify }) {
   const saveTransaction = async (event) => {
     event.preventDefault();
     try {
-      await supplierTransactionsApi.create({ ...form, supplier_id: Number(params.id), amount: Number(form.amount) });
+      await supplierTransactionsApi.create(buildTransactionPayload(form, params.id));
       setForm(emptyTransaction);
       notify("Firma hareketi eklendi.", "success");
       load();
@@ -55,10 +69,22 @@ export default function SupplierDetail({ params, notify }) {
   const columns = [
     { key: "transaction_date", header: "Tarih", render: (row) => dateTR(row.transaction_date) },
     { key: "type", header: "Tip", render: (row) => supplierTransactionLabel(row.type) },
-    { key: "payment_method", header: "Ödeme" },
-    { key: "amount", header: "Tutar", align: "right", render: (row) => money(row.amount) },
+    { key: "invoice_no", header: "Fatura No", render: (row) => row.invoice_no || "-" },
+    { key: "payment_method", header: "Ödeme", render: (row) => (row.payment_method ? supplierPaymentMethodLabel(row.payment_method) : "-") },
+    {
+      key: "amount",
+      header: "Tutar",
+      align: "right",
+      render: (row) => <span className={`amount-text ${supplierTransactionTone(row.type)}`}>{money(row.amount)}</span>,
+    },
     { key: "note", header: "Not" },
   ];
+
+  const formTitle = {
+    invoice: "Gelen Fatura Ekle",
+    payment: "Ödeme Ekle",
+    return: "İade / Fatura Düşümü",
+  }[form.type];
 
   return (
     <div className="page-stack">
@@ -82,11 +108,24 @@ export default function SupplierDetail({ params, notify }) {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>Hareket Ekle</h2>
-            <p>Alış veya ödeme hareketi girin.</p>
+            <h2>{formTitle}</h2>
+            <p>Firma cari hareketini seçin ve gerekli alanları doldurun.</p>
           </div>
         </div>
         <form className="form-grid" onSubmit={saveTransaction}>
+          <div className="type-switch span-2" role="group" aria-label="Hareket tipi">
+            {transactionTypes.map((item) => (
+              <button
+                key={item.value}
+                className={form.type === item.value ? "active" : ""}
+                type="button"
+                onClick={() => setForm({ ...emptyTransaction, type: item.value, transaction_date: form.transaction_date })}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
           <label>
             Tarih
             <input
@@ -96,31 +135,78 @@ export default function SupplierDetail({ params, notify }) {
               required
             />
           </label>
-          <label>
-            Tip
-            <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-              <option value="purchase">Alış / Borç</option>
-              <option value="payment">Ödeme</option>
-            </select>
-          </label>
-          <label>
-            Tutar
-            <input
-              type="number"
-              step="0.01"
-              value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              required
-            />
-          </label>
-          <label>
-            Ödeme Yöntemi
-            <input value={form.payment_method} onChange={(e) => setForm({ ...form, payment_method: e.target.value })} />
-          </label>
-          <label className="span-2">
-            Not
-            <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
-          </label>
+
+          {form.type === "invoice" && (
+            <>
+              <label>
+                Fatura Tutarı
+                <input
+                  type="number"
+                  step="0.01"
+                  value={form.amount}
+                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  required
+                />
+              </label>
+              <label>
+                Fatura No
+                <input value={form.invoice_no} onChange={(e) => setForm({ ...form, invoice_no: e.target.value })} />
+              </label>
+              <label className="span-2">
+                Açıklama
+                <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+              </label>
+            </>
+          )}
+
+          {form.type === "payment" && (
+            <>
+              <label>
+                Ödeme Tutarı
+                <input
+                  type="number"
+                  step="0.01"
+                  value={form.amount}
+                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  required
+                />
+              </label>
+              <label>
+                Ödeme Şekli
+                <select value={form.payment_method} onChange={(e) => setForm({ ...form, payment_method: e.target.value })}>
+                  <option value="cash">Nakit</option>
+                  <option value="credit_card">Kredi Kartı</option>
+                  <option value="current_account">Cari</option>
+                  <option value="bank_transfer">Havale/EFT</option>
+                  <option value="other">Diğer</option>
+                </select>
+              </label>
+              <label className="span-2">
+                Açıklama
+                <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+              </label>
+            </>
+          )}
+
+          {form.type === "return" && (
+            <>
+              <label>
+                İade Tutarı
+                <input
+                  type="number"
+                  step="0.01"
+                  value={form.amount}
+                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  required
+                />
+              </label>
+              <label className="span-2">
+                Açıklama
+                <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+              </label>
+            </>
+          )}
+
           <div className="form-actions span-2">
             <button className="primary-button" type="submit">
               Hareket Ekle
@@ -136,4 +222,30 @@ export default function SupplierDetail({ params, notify }) {
       </section>
     </div>
   );
+}
+
+function buildTransactionPayload(form, supplierId) {
+  const base = {
+    supplier_id: Number(supplierId),
+    transaction_date: form.transaction_date,
+    type: form.type,
+    amount: Number(form.amount || 0),
+    note: form.note,
+  };
+
+  if (form.type === "invoice") {
+    return {
+      ...base,
+      invoice_no: form.invoice_no,
+    };
+  }
+
+  if (form.type === "payment") {
+    return {
+      ...base,
+      payment_method: form.payment_method,
+    };
+  }
+
+  return base;
 }
