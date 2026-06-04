@@ -121,7 +121,7 @@ export default function Dashboard({ notify }) {
     ["Bu Ay Gider", summary.month_expense, "danger"],
     ["Bu Ay Net", summary.month_net, Number(summary.month_net) >= 0 ? "success" : "danger"],
     ["Toplam Firma Borcu", summary.supplier_debt_total, "warning"],
-    ["Toplam Personel Borcu", summary.employee_debt_total, "warning"],
+    ["Toplam Personel Gideri", summary.employee_debt_total, "warning"],
     { title: "Toplam Finans Borcu", value: money(financialSummary.totalDebt), tone: "warning" },
     { title: "Bu Ay Ödenecek Finans Borcu", value: money(financialSummary.thisMonthDue), tone: "warning" },
     {
