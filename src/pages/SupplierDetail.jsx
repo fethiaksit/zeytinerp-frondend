@@ -23,9 +23,9 @@ const emptyTransaction = {
 };
 
 const transactionTypes = [
-  { value: "invoice", label: "Gelen Fatura" },
-  { value: "payment", label: "Ödeme" },
-  { value: "return", label: "İade" },
+  { value: "invoice", label: "Gelen Fatura Ekle", summaryLabel: "Gelen Fatura", description: "Firma borcunu artırır" },
+  { value: "payment", label: "Ödeme Ekle", summaryLabel: "Ödeme", description: "Firma borcunu azaltır" },
+  { value: "return", label: "İade / Fatura Düşümü Ekle", summaryLabel: "İade / Fatura Düşümü", description: "Firma borcunu azaltır" },
 ];
 
 const supportedFileTypes = ["jpg", "jpeg", "png", "webp", "pdf"];
@@ -39,6 +39,7 @@ export default function SupplierDetail({ params, notify }) {
   const [fileInputKey, setFileInputKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [fileModal, setFileModal] = useState({ open: false, transaction: null, files: [], loading: false });
   const [deletingFileId, setDeletingFileId] = useState(null);
 
@@ -69,8 +70,20 @@ export default function SupplierDetail({ params, notify }) {
     console.log("Selected invoice files:", invoiceFiles);
   }, [invoiceFiles]);
 
-  const saveTransaction = async (event) => {
+  const requestSaveConfirmation = (event) => {
     event.preventDefault();
+    const filesToUpload = Array.from(invoiceFiles || []);
+    const unsupportedFiles = filesToUpload.filter((file) => !isSupportedFile(file));
+
+    if (form.type === "invoice" && unsupportedFiles.length > 0) {
+      notify("Sadece jpg, jpeg, png, webp veya pdf dosyası seçilebilir.");
+      return;
+    }
+
+    setConfirmOpen(true);
+  };
+
+  const saveTransaction = async () => {
     setSaving(true);
     try {
       const filesToUpload = Array.from(invoiceFiles || []);
@@ -102,7 +115,7 @@ export default function SupplierDetail({ params, notify }) {
             notify("Fatura dosyaları yüklendi", "success");
           } catch (uploadError) {
             uploadFailed = true;
-            notify(`Fatura hareketi kaydedildi ama dosyalar yüklenemedi: ${getErrorMessage(uploadError)}`);
+            notify(`Fatura kaydedildi ancak görseller yüklenemedi: ${getErrorMessage(uploadError)}`);
           } finally {
             setUploadingFiles(false);
           }
@@ -110,6 +123,10 @@ export default function SupplierDetail({ params, notify }) {
       }
 
       if (uploadFailed) {
+        setForm(emptyTransaction);
+        setInvoiceFiles([]);
+        setFileInputKey((key) => key + 1);
+        setConfirmOpen(false);
         load();
         return;
       }
@@ -117,6 +134,7 @@ export default function SupplierDetail({ params, notify }) {
       setForm(emptyTransaction);
       setInvoiceFiles([]);
       setFileInputKey((key) => key + 1);
+      setConfirmOpen(false);
       if (!uploadFailed && !uploadedFiles) notify("Firma hareketi eklendi.", "success");
       load();
     } catch (error) {
@@ -198,6 +216,7 @@ export default function SupplierDetail({ params, notify }) {
     payment: "Ödeme Ekle",
     return: "İade / Fatura Düşümü",
   }[form.type];
+  const selectedTransactionType = transactionTypes.find((item) => item.value === form.type) || transactionTypes[0];
 
   return (
     <div className="page-stack">
@@ -221,16 +240,16 @@ export default function SupplierDetail({ params, notify }) {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>{formTitle}</h2>
-            <p>Firma cari hareketini seçin ve gerekli alanları doldurun.</p>
+            <h2>Hareket Ekle</h2>
+            <p>Önce işlem türünü seçin, sonra sadece o işleme ait alanları doldurun.</p>
           </div>
         </div>
-        <form className="form-grid" onSubmit={saveTransaction}>
-          <div className="type-switch span-2" role="group" aria-label="Hareket tipi">
+        <form className="form-grid" onSubmit={requestSaveConfirmation}>
+          <div className="operation-card-grid span-2" role="group" aria-label="Hareket tipi">
             {transactionTypes.map((item) => (
               <button
                 key={item.value}
-                className={form.type === item.value ? "active" : ""}
+                className={`operation-card ${form.type === item.value ? "active" : ""}`}
                 type="button"
                 onClick={() => {
                   setForm({ ...emptyTransaction, type: item.value, transaction_date: form.transaction_date });
@@ -238,9 +257,14 @@ export default function SupplierDetail({ params, notify }) {
                   setFileInputKey((key) => key + 1);
                 }}
               >
-                {item.label}
+                <strong>{item.label}</strong>
+                <span>{item.description}</span>
               </button>
             ))}
+          </div>
+          <div className="span-2 form-subtitle">
+            <strong>{formTitle}</strong>
+            <span>{selectedTransactionType.description}</span>
           </div>
 
           <label>
@@ -350,7 +374,7 @@ export default function SupplierDetail({ params, notify }) {
 
           <div className="form-actions span-2">
             <button className="primary-button" type="submit" disabled={saving}>
-              {uploadingFiles ? "Fatura dosyaları yükleniyor..." : saving ? "Kaydediliyor..." : "Hareket Ekle"}
+              Kaydet
             </button>
           </div>
         </form>
@@ -403,6 +427,51 @@ export default function SupplierDetail({ params, notify }) {
           </div>
         )}
       </Modal>
+      <Modal title="İşlemi Onayla" open={confirmOpen} onClose={() => !saving && setConfirmOpen(false)}>
+        <div className="confirm-summary">
+          <SummaryRow label="Firma" value={supplier?.name || "-"} />
+          <SummaryRow label="İşlem" value={selectedTransactionType.summaryLabel} />
+          <SummaryRow label="Tarih" value={dateTR(form.transaction_date)} />
+          {form.type === "invoice" && (
+            <>
+              <SummaryRow label="Fatura No" value={form.invoice_no || "-"} />
+              <SummaryRow label="Tutar" value={money(form.amount)} />
+              <SummaryRow label="Açıklama" value={form.note || "-"} />
+              <SummaryRow label="Eklenecek Dosya Sayısı" value={invoiceFiles.length} />
+            </>
+          )}
+          {form.type === "payment" && (
+            <>
+              <SummaryRow label="Ödeme Şekli" value={supplierPaymentMethodLabel(form.payment_method)} />
+              <SummaryRow label="Tutar" value={money(form.amount)} />
+              <SummaryRow label="Açıklama" value={form.note || "-"} />
+            </>
+          )}
+          {form.type === "return" && (
+            <>
+              <SummaryRow label="Tutar" value={money(form.amount)} />
+              <SummaryRow label="Açıklama" value={form.note || "-"} />
+            </>
+          )}
+        </div>
+        <div className="form-actions modal-actions">
+          <button className="ghost-button" type="button" disabled={saving} onClick={() => setConfirmOpen(false)}>
+            Vazgeç
+          </button>
+          <button className="primary-button" type="button" disabled={saving} onClick={saveTransaction}>
+            {saving ? "İşlem kaydediliyor..." : "Onayla ve Kaydet"}
+          </button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }) {
+  return (
+    <div className="summary-row">
+      <span>{label}:</span>
+      <strong>{value}</strong>
     </div>
   );
 }
