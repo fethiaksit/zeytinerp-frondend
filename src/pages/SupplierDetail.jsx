@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import DataTable from "../components/DataTable.jsx";
 import Modal from "../components/Modal.jsx";
 import StatCard from "../components/StatCard.jsx";
-import { api, getErrorMessage, supplierTransactionFiles, supplierTransactionsApi, suppliersApi } from "../services/api.js";
+import { getErrorMessage, supplierTransactionFiles, supplierTransactionsApi, suppliersApi } from "../services/api.js";
 import {
   dateTR,
   money,
@@ -87,7 +87,7 @@ export default function SupplierDetail({ params, notify }) {
     setSaving(true);
     try {
       const filesToUpload = Array.from(invoiceFiles || []);
-      console.log("Selected invoice files", filesToUpload);
+      console.log("Selected invoice files:", filesToUpload);
 
       const unsupportedFiles = filesToUpload.filter((file) => !isSupportedFile(file));
       if (form.type === "invoice" && unsupportedFiles.length > 0) {
@@ -96,11 +96,11 @@ export default function SupplierDetail({ params, notify }) {
       }
 
       const createdTransaction = await supplierTransactionsApi.create(buildTransactionPayload(form, params.id));
-      console.log("Created transaction response", createdTransaction);
+      console.log("Created transaction response:", createdTransaction);
       const transactionId = readTransactionId(createdTransaction);
       let uploadFailed = false;
       let uploadedFiles = false;
-      console.log("Created transaction id", transactionId);
+      console.log("Created transaction id:", transactionId);
 
       if (form.type === "invoice" && filesToUpload.length > 0) {
         if (!transactionId) {
@@ -108,11 +108,12 @@ export default function SupplierDetail({ params, notify }) {
           notify("Fatura hareketi kaydedildi ama dosyalar yüklenemedi: transaction id alınamadı");
         } else {
           try {
-            console.log("Uploading files count", filesToUpload.length);
+            console.log("Uploading invoice files:", filesToUpload);
             setUploadingFiles(true);
-            await supplierTransactionFiles.upload(transactionId, filesToUpload);
+            const uploadedFilesResponse = await supplierTransactionFiles.upload(transactionId, filesToUpload);
+            console.log("Uploaded files response:", uploadedFilesResponse);
             uploadedFiles = true;
-            notify("Fatura dosyaları yüklendi", "success");
+            notify("Fatura ve görseller kaydedildi", "success");
           } catch (uploadError) {
             uploadFailed = true;
             notify(`Fatura kaydedildi ancak görseller yüklenemedi: ${getErrorMessage(uploadError)}`);
@@ -146,9 +147,11 @@ export default function SupplierDetail({ params, notify }) {
   };
 
   const openFileModal = async (transaction) => {
+    console.log("Viewing invoice files:", transaction);
     setFileModal({ open: true, transaction, files: transaction._files || [], loading: true });
     try {
       const files = asArray(await supplierTransactionFiles.list(transaction.id));
+      console.log("Viewing invoice files:", files);
       setFileModal({ open: true, transaction, files, loading: false });
     } catch (error) {
       setFileModal({ open: true, transaction, files: transaction._files || [], loading: false });
@@ -190,12 +193,12 @@ export default function SupplierDetail({ params, notify }) {
       render: (row) => {
         const fileCount = readFileCount(row);
         if (!isInvoice(row)) return "-";
+        if (fileCount <= 0) return "-";
 
         return (
           <div className="row-actions">
-            {fileCount > 0 && <span className="badge info">📎 Fatura</span>}
             <button className="secondary-button" type="button" onClick={() => openFileModal(row)}>
-              Faturaları Gör
+              📎 Faturayı Gör
             </button>
           </div>
         );
@@ -419,7 +422,7 @@ export default function SupplierDetail({ params, notify }) {
                       PDF Aç
                     </a>
                   ) : (
-                    <img src={fileUrl} alt={fileName} />
+                    <InvoiceImagePreview src={fileUrl} alt={fileName} />
                   )}
                 </article>
               );
@@ -474,6 +477,14 @@ function SummaryRow({ label, value }) {
       <strong>{value}</strong>
     </div>
   );
+}
+
+function InvoiceImagePreview({ src, alt }) {
+  const [failed, setFailed] = useState(false);
+  if (failed || !src || src === "#") {
+    return <div className="state-box compact invoice-file-error">Fatura dosyası görüntülenemedi</div>;
+  }
+  return <img src={src} alt={alt} onError={() => setFailed(true)} />;
 }
 
 async function attachInvoiceFiles(rows) {
@@ -571,15 +582,13 @@ function readFileCount(row) {
 }
 
 function readFilePath(file) {
-  return file?.url || file?.file_url || file?.download_url || file?.path || file?.file_path || "";
+  return file?.file_url || file?.url || file?.download_url || file?.path || file?.file_path || "";
 }
 
 function resolveFileUrl(file) {
   const path = readFilePath(file);
   if (!path) return "#";
-  if (/^https?:\/\//i.test(path)) return path;
-  if (path.startsWith("/")) return `${new URL(api.defaults.baseURL).origin}${path}`;
-  return `${String(api.defaults.baseURL).replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+  return path.startsWith("http") ? path : `${window.location.origin}${path}`;
 }
 
 function fileExtension(name) {

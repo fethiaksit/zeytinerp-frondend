@@ -176,9 +176,7 @@ export const supplierTransactionFiles = {
   upload: (transactionId, files) => {
     const formData = new FormData();
     Array.from(files || []).forEach((file) => formData.append("files", file));
-    return api.post(`/supplier-transactions/${transactionId}/files`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }).then(dataOf);
+    return api.post(`/supplier-transactions/${transactionId}/files`, formData).then(dataOf);
   },
   remove: (fileId) => api.delete(`/supplier-transaction-files/${fileId}`).then(dataOf),
 };
