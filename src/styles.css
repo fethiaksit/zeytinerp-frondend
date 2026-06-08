@@ -255,6 +255,17 @@ h2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.dashboard-wallet-card {
+  border-color: #bfdcc5;
+  background: #f3fbf4;
+  color: var(--text);
+  text-align: left;
+}
+
+.dashboard-wallet-card:hover {
+  border-color: #9bc7aa;
+}
+
 .panel,
 .stat-card {
   border: 1px solid var(--line);
