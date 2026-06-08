@@ -91,6 +91,18 @@ export const financialPaymentMethodLabel = (value) =>
     other: "Diğer",
   })[value] || value || "-";
 
+export const bankTransactionTypeLabel = (value) =>
+  ({
+    cash_deposit: "Nakit Yatırma",
+    pos_income: "POS Yatışı",
+    bank_income: "Banka Geliri",
+    payment: "Ödeme",
+    expense: "Gider",
+    transfer_in: "Transfer Girişi",
+    transfer_out: "Transfer Çıkışı",
+    correction: "Düzeltme",
+  })[value] || value || "-";
+
 export const cashTotal = (row) =>
   Number(row?.cash_amount || 0) + Number(row?.pos_amount || 0) + Number(row?.qr_amount || 0);
 

@@ -109,6 +109,15 @@ function dataOf(response) {
     "income_entries",
     "products",
     "stock_movements",
+    "bank_account",
+    "bank_accounts",
+    "bank_transaction",
+    "bank_transactions",
+    "bank_wallet",
+    "bank_summary",
+    "summary",
+    "daily_summary",
+    "monthly_summary",
   ];
   const key = knownKeys.find((item) => body[item] !== undefined);
   return key ? body[key] : body;
@@ -237,6 +246,40 @@ export const productsApi = {
 export const stockMovementsApi = {
   list: () => api.get("/stock-movements").then(dataOf),
   create: (payload) => api.post("/stock-movements", payload).then(dataOf),
+};
+
+export const bankAccounts = {
+  list: () => api.get("/bank-accounts").then(dataOf),
+  create: (data) => api.post("/bank-accounts", data).then(dataOf),
+  get: (id) => api.get(`/bank-accounts/${id}`).then(dataOf),
+  update: (id, data) => api.put(`/bank-accounts/${id}`, data).then(dataOf),
+  remove: (id) => api.delete(`/bank-accounts/${id}`).then(dataOf),
+};
+
+export const bankTransactions = {
+  list: async (accountId) => {
+    try {
+      return await api.get(`/bank-accounts/${accountId}/transactions`).then(dataOf);
+    } catch (error) {
+      if (error?.response?.status === 404) return api.get("/bank-transactions", { params: { account_id: accountId } }).then(dataOf);
+      throw error;
+    }
+  },
+  create: async (accountId, data) => {
+    try {
+      return await api.post(`/bank-accounts/${accountId}/transactions`, data).then(dataOf);
+    } catch (error) {
+      if (error?.response?.status === 404) return api.post("/bank-transactions", { ...data, bank_account_id: Number(accountId) }).then(dataOf);
+      throw error;
+    }
+  },
+  remove: (transactionId) => api.delete(`/bank-transactions/${transactionId}`).then(dataOf),
+};
+
+export const bankWallet = {
+  summary: () => api.get("/bank-wallet/summary").then(dataOf),
+  dailySummary: (date) => api.get("/bank-wallet/daily-summary", { params: { date } }).then(dataOf),
+  monthlySummary: (month) => api.get("/bank-wallet/monthly-summary", { params: { month } }).then(dataOf),
 };
 
 export const financialDebtsApi = {

@@ -5,6 +5,7 @@ const links = [
   { path: "/firmalar", label: "Firmalar", icon: "◆" },
   { path: "/personel", label: "Personel", icon: "●" },
   { path: "/gunluk-kasa", label: "Günlük Kasa", icon: "₺" },
+  { path: "/banka-cuzdani", label: "Banka Cüzdanı", icon: "▰" },
   { path: "/finans-borclari", label: "Finans Borçları", icon: "◈" },
   { path: "/finans-uyarilari", label: "Finans Uyarıları", icon: "!" },
   { path: "/giderler", label: "Giderler", icon: "↓" },

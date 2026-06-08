@@ -195,6 +195,13 @@ h2 {
   gap: 18px;
 }
 
+.bank-wallet-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.45fr);
+  gap: 18px;
+  align-items: start;
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -311,6 +318,55 @@ td {
 
 .search-field {
   width: min(420px, 100%);
+}
+
+.bank-account-form {
+  margin-bottom: 16px;
+}
+
+.bank-account-list {
+  display: grid;
+  gap: 12px;
+}
+
+.bank-account-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  background: #fbfcfa;
+}
+
+.bank-account-card.active {
+  border-color: #9bc7aa;
+  background: #edf8ef;
+  box-shadow: inset 0 0 0 2px rgba(46, 125, 79, 0.12);
+}
+
+.bank-account-card strong,
+.bank-account-card span {
+  display: block;
+}
+
+.bank-account-card > div:first-child span,
+.bank-account-card p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.bank-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.bank-card-footer span {
+  color: var(--primary-dark);
+  font-weight: 900;
 }
 
 .type-switch {
@@ -807,6 +863,10 @@ label {
   .content-grid {
     grid-template-columns: 1fr;
   }
+
+  .bank-wallet-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -847,5 +907,10 @@ label {
 
   .row-actions {
     min-width: 240px;
+  }
+
+  .bank-card-footer {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

@@ -13,6 +13,7 @@ import {
   incomeApi,
   supplierTransactionsApi,
   suppliersApi,
+  bankWallet,
 } from "../services/api.js";
 import {
   cashTotal,
@@ -49,6 +50,7 @@ export default function Dashboard({ notify }) {
   const [financialDebts, setFinancialDebts] = useState([]);
   const [financialInstallments, setFinancialInstallments] = useState([]);
   const [financialAlerts, setFinancialAlerts] = useState({});
+  const [bankSummary, setBankSummary] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -80,6 +82,7 @@ export default function Dashboard({ notify }) {
         const financialDebtRows = await financialDebtsApi.list().catch(() => []);
         const financialInstallmentRows = await loadFinancialInstallments(financialDebtRows);
         const financialAlertRows = await financialAlertsApi.list().catch(() => ({}));
+        const bankSummaryData = await bankWallet.summary().catch(() => ({}));
 
         setSummary(normalizeSummary(dashboard, cashRows, expenseRows, incomeRows, supplierRows, employeeRows));
         setActivities(buildActivities(cashRows, expenseRows, incomeRows, supplierTransactions, employeeTransactions));
@@ -87,6 +90,7 @@ export default function Dashboard({ notify }) {
         setFinancialDebts(financialDebtRows);
         setFinancialInstallments(financialInstallmentRows);
         setFinancialAlerts(normalizeAlerts(financialAlertRows));
+        setBankSummary(bankSummaryData || {});
       } catch (error) {
         notify(getErrorMessage(error));
       } finally {
@@ -122,6 +126,7 @@ export default function Dashboard({ notify }) {
     ["Bu Ay Net", summary.month_net, Number(summary.month_net) >= 0 ? "success" : "danger"],
     ["Toplam Firma Borcu", summary.supplier_debt_total, "warning"],
     ["Toplam Personel Gideri", summary.employee_debt_total, "warning"],
+    ["Toplam Banka Bakiyesi", readBankTotalBalance(bankSummary), "success"],
     { title: "Toplam Finans Borcu", value: money(financialSummary.totalDebt), tone: "warning" },
     { title: "Bu Ay Ödenecek Finans Borcu", value: money(financialSummary.thisMonthDue), tone: "warning" },
     {
@@ -397,4 +402,8 @@ function addDays(date, days) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return next;
+}
+
+function readBankTotalBalance(summary) {
+  return Number(summary?.total_bank_balance ?? summary?.total_balance ?? summary?.balance ?? 0);
 }

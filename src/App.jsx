@@ -14,11 +14,13 @@ import Expenses from "./pages/Expenses.jsx";
 import IncomeEntries from "./pages/IncomeEntries.jsx";
 import Login from "./pages/Login.jsx";
 import Reports from "./pages/Reports.jsx";
+import BankWallet from "./pages/BankWallet.jsx";
 const routes = [
   { path: "/", title: "Dashboard", component: Dashboard },
   { path: "/firmalar", title: "Firmalar", component: Suppliers },
   { path: "/personel", title: "Personel", component: Employees },
   { path: "/gunluk-kasa", title: "Günlük Kasa", component: DailyCash },
+  { path: "/banka-cuzdani", title: "Banka Cüzdanı", component: BankWallet },
   { path: "/finans-borclari", title: "Finans Borçları", component: FinancialDebts },
   { path: "/finans-uyarilari", title: "Finans Uyarıları", component: FinancialAlerts },
   { path: "/giderler", title: "Giderler", component: Expenses },
