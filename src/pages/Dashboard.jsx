@@ -120,7 +120,7 @@ export default function Dashboard({ notify }) {
   const statCards = [
     ["Bugünkü Ciro", summary.today_revenue],
     ["Bugünkü Gider", summary.today_expense, "danger"],
-    ["Bugünkü Kasa", summary.today_net, Number(summary.today_net) >= 0 ? "success" : "danger"],
+    ["Kasa", summary.today_net, Number(summary.today_net) >= 0 ? "success" : "danger"],
     ["Bu Ay Ciro", summary.month_revenue],
     ["Bu Ay Gider", summary.month_expense, "danger"],
     ["Bu Ay Net", summary.month_net, Number(summary.month_net) >= 0 ? "success" : "danger"],
