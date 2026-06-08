@@ -15,8 +15,10 @@ import IncomeEntries from "./pages/IncomeEntries.jsx";
 import Login from "./pages/Login.jsx";
 import Reports from "./pages/Reports.jsx";
 import BankWallet from "./pages/BankWallet.jsx";
+import Wallet from "./pages/Wallet.jsx";
 const routes = [
   { path: "/", title: "Dashboard", component: Dashboard },
+  { path: "/cuzdan", title: "Cüzdan", component: Wallet },
   { path: "/firmalar", title: "Firmalar", component: Suppliers },
   { path: "/personel", title: "Personel", component: Employees },
   { path: "/gunluk-kasa", title: "Günlük Kasa", component: DailyCash },

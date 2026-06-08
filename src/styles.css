@@ -189,6 +189,49 @@ h2 {
   gap: 18px;
 }
 
+.dashboard-wallet-only {
+  display: grid;
+  min-height: min(420px, calc(100vh - 160px));
+  place-items: start center;
+  padding-top: clamp(18px, 8vh, 90px);
+}
+
+.wallet-card-button {
+  display: grid;
+  width: min(420px, 100%);
+  gap: 12px;
+  border: 1px solid #bfdcc5;
+  border-radius: var(--radius);
+  padding: 24px;
+  background: #f3fbf4;
+  color: var(--text);
+  text-align: left;
+  box-shadow: var(--shadow);
+}
+
+.wallet-card-button span,
+.wallet-balance-panel span {
+  color: var(--primary-dark);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.wallet-card-button strong,
+.wallet-balance-panel strong {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  line-height: 1.08;
+}
+
+.wallet-balance-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #bfdcc5;
+  border-radius: var(--radius);
+  padding: 24px;
+  background: #f3fbf4;
+  box-shadow: var(--shadow);
+}
+
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
