@@ -130,7 +130,7 @@ export default function Dashboard({ notify }) {
     ["Bu Ay Net", summary.month_net, Number(summary.month_net) >= 0 ? "success" : "danger"],
     ["Toplam Firma Borcu", summary.supplier_debt_total, "warning"],
     ["Toplam Personel Borcu", summary.employee_debt_total, "warning"],
-    { title: "💵 Cüzdan", value: money(readWalletBalance(walletSummary)), tone: "success", to: "/cuzdan" },
+    { title: "Cüzdan", value: money(readWalletBalance(walletSummary)), tone: "success", to: "/cuzdan" },
     ["Toplam Banka Bakiyesi", readBankTotalBalance(bankSummary), "success"],
     { title: "Toplam Finans Borcu", value: money(financialSummary.totalDebt), tone: "warning" },
     { title: "Bu Ay Ödenecek Finans Borcu", value: money(financialSummary.thisMonthDue), tone: "warning" },
