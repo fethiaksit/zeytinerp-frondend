@@ -2,24 +2,27 @@ import { useEffect, useMemo, useState } from "react";
 import DataTable from "../components/DataTable.jsx";
 import Modal from "../components/Modal.jsx";
 import StatCard from "../components/StatCard.jsx";
-import { getErrorMessage, walletApi } from "../services/api.js";
+import { getErrorMessage, wallet } from "../services/api.js";
 import { dateTR, money, todayISO, walletTransactionTypeLabel } from "../utils/format.js";
 
 const initialForm = {
   transaction_date: todayISO(),
   transaction_type: "cash_income",
   amount: "",
+  title: "",
   description: "",
 };
 
 const transactionTypes = [
   { value: "opening_balance", label: "Açılış Bakiyesi" },
-  { value: "cash_income", label: "Kasaya Para Girişi" },
+  { value: "cash_income", label: "Nakit Gelir" },
   { value: "cash_sale", label: "Nakit Satış" },
-  { value: "cash_expense", label: "Nakit Gider" },
-  { value: "cash_payment", label: "Kasadan Ödeme" },
-  { value: "cash_withdraw", label: "Kasadan Çıkış" },
-  { value: "cash_deposit", label: "Kasaya Para Yatırma" },
+  { value: "pos_income", label: "POS Yatışı" },
+  { value: "bank_income", label: "Banka Geliri" },
+  { value: "payment", label: "Ödeme" },
+  { value: "expense", label: "Gider" },
+  { value: "cash_withdraw", label: "Para Çekme" },
+  { value: "cash_deposit", label: "Para Yatırma" },
   { value: "correction", label: "Düzeltme" },
 ];
 
@@ -29,12 +32,13 @@ export default function Wallet({ notify }) {
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [walletSummary, transactionRows] = await Promise.all([walletApi.summary(), walletApi.transactions()]);
+      const [walletSummary, transactionRows] = await Promise.all([wallet.summary(), wallet.transactions()]);
       setSummary(walletSummary || {});
       setTransactions(asArray(transactionRows));
     } catch (error) {
@@ -48,29 +52,42 @@ export default function Wallet({ notify }) {
     load();
   }, []);
 
-  const recentTransactions = useMemo(
-    () => [...transactions].sort((a, b) => new Date(readTransactionDate(b)) - new Date(readTransactionDate(a))).slice(0, 30),
-    [transactions],
-  );
-
   const amount = Number(form.amount || 0);
   const effect = transactionEffect(form.transaction_type, amount);
+  const sortedTransactions = useMemo(
+    () => [...transactions].sort((a, b) => new Date(readTransactionDate(b)) - new Date(readTransactionDate(a)) || readID(b) - readID(a)),
+    [transactions],
+  );
 
   const columns = [
     { key: "transaction_date", header: "Tarih", render: (row) => dateTR(readTransactionDate(row)) },
     { key: "transaction_type", header: "İşlem Tipi", render: (row) => walletTransactionTypeLabel(readTransactionType(row)) },
-    { key: "description", header: "Açıklama", render: (row) => row.description || row.note || row.title || "-" },
+    { key: "title", header: "Başlık", render: (row) => row.title || "-" },
+    { key: "description", header: "Açıklama", render: (row) => row.description || row.note || "-" },
     {
-      key: "amount",
-      header: "Tutar",
+      key: "in",
+      header: "Giriş",
       align: "right",
-      render: (row) => (
-        <span className={`amount-text ${isTransactionOut(row) ? "danger" : "success"}`}>
-          {money(signedAmount(row))}
-        </span>
-      ),
+      render: (row) =>
+        isTransactionOut(row) ? "-" : <span className="amount-text success">{money(Math.abs(readTransactionAmount(row)))}</span>,
+    },
+    {
+      key: "out",
+      header: "Çıkış",
+      align: "right",
+      render: (row) =>
+        isTransactionOut(row) ? <span className="amount-text danger">{money(Math.abs(readTransactionAmount(row)))}</span> : "-",
     },
     { key: "balance_after", header: "İşlem Sonrası Bakiye", align: "right", render: (row) => money(readBalanceAfter(row)) },
+    {
+      key: "actions",
+      header: "İşlem",
+      render: (row) => (
+        <button className="danger-button" type="button" disabled={deletingId === readID(row)} onClick={() => deleteTransaction(row)}>
+          {deletingId === readID(row) ? "Siliniyor..." : "Sil"}
+        </button>
+      ),
+    },
   ];
 
   const handleSubmit = (event) => {
@@ -85,11 +102,11 @@ export default function Wallet({ notify }) {
   const saveTransaction = async () => {
     setSaving(true);
     try {
-      await walletApi.createTransaction({
+      await wallet.createTransaction({
         transaction_date: form.transaction_date,
         transaction_type: form.transaction_type,
         amount,
-        title: walletTransactionTypeLabel(form.transaction_type),
+        title: form.title || walletTransactionTypeLabel(form.transaction_type),
         description: form.description,
       });
       setConfirmOpen(false);
@@ -103,6 +120,22 @@ export default function Wallet({ notify }) {
     }
   };
 
+  const deleteTransaction = async (row) => {
+    const id = readID(row);
+    if (!id || !window.confirm("Bu cüzdan hareketi silinsin mi? Bakiye yeniden hesaplanacak.")) return;
+
+    setDeletingId(id);
+    try {
+      await wallet.deleteTransaction(id);
+      notify("Cüzdan hareketi silindi.", "success");
+      await load();
+    } catch (error) {
+      notify(getErrorMessage(error));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="page-stack">
       <section className="wallet-balance-panel">
@@ -110,9 +143,14 @@ export default function Wallet({ notify }) {
         <strong>{loading ? "Yükleniyor..." : money(readSummaryValue(summary, "current_balance", "balance", "total_balance"))}</strong>
       </section>
 
-      <div className="stat-grid two">
+      <div className="stat-grid">
         <StatCard title="Bugünkü Giriş" value={money(readSummaryValue(summary, "today_income", "today_in", "today_inflow"))} tone="success" />
         <StatCard title="Bugünkü Çıkış" value={money(readSummaryValue(summary, "today_expense", "today_out", "today_outflow"))} tone="danger" />
+        <StatCard
+          title="Bugünkü Net"
+          value={money(readSummaryValue(summary, "today_net"))}
+          tone={readSummaryValue(summary, "today_net") >= 0 ? "success" : "danger"}
+        />
       </div>
 
       <section className="panel">
@@ -153,6 +191,14 @@ export default function Wallet({ notify }) {
               onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))}
             />
           </label>
+          <label>
+            Başlık
+            <input
+              value={form.title}
+              placeholder={walletTransactionTypeLabel(form.transaction_type)}
+              onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+            />
+          </label>
           <label className="span-2">
             Açıklama
             <textarea
@@ -172,17 +218,14 @@ export default function Wallet({ notify }) {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>Son Hareketler</h2>
+            <h2>Cüzdan Hareketleri</h2>
           </div>
         </div>
-        <DataTable columns={columns} rows={recentTransactions} loading={loading} emptyText="Henüz cüzdan hareketi yok." />
+        <DataTable columns={columns} rows={sortedTransactions} loading={loading} emptyText="Henüz cüzdan hareketi yok." />
       </section>
 
       <Modal title="İşlemi Onayla" open={confirmOpen} onClose={() => !saving && setConfirmOpen(false)}>
         <div className="confirm-summary">
-          <div className="state-box compact">
-            Bu işlem cüzdan bakiyesini {effect === "out" ? "azaltacak" : "artıracak"}. Onaylıyor musunuz?
-          </div>
           <div className="summary-row">
             <span>İşlem Tipi</span>
             <strong>{walletTransactionTypeLabel(form.transaction_type)}</strong>
@@ -194,6 +237,10 @@ export default function Wallet({ notify }) {
           <div className="summary-row">
             <span>Tutar</span>
             <strong>{money(amount)}</strong>
+          </div>
+          <div className="summary-row">
+            <span>Bakiye Etkisi</span>
+            <strong>{effect === "out" ? "Azaltır" : "Artırır"}</strong>
           </div>
           <div className="summary-row">
             <span>Açıklama</span>
@@ -215,6 +262,10 @@ export default function Wallet({ notify }) {
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
+}
+
+function readID(row) {
+  return Number(row?.id || 0);
 }
 
 function readSummaryValue(summary, ...keys) {
@@ -239,16 +290,11 @@ function readBalanceAfter(transaction) {
 }
 
 function transactionEffect(type, amount) {
-  if (["cash_expense", "cash_payment", "cash_withdraw"].includes(type)) return "out";
+  if (["payment", "expense", "cash_withdraw"].includes(type)) return "out";
   if (type === "correction") return Number(amount || 0) < 0 ? "out" : "in";
   return "in";
 }
 
 function isTransactionOut(transaction) {
   return transactionEffect(readTransactionType(transaction), readTransactionAmount(transaction)) === "out";
-}
-
-function signedAmount(transaction) {
-  const amount = Math.abs(readTransactionAmount(transaction));
-  return isTransactionOut(transaction) ? -amount : amount;
 }

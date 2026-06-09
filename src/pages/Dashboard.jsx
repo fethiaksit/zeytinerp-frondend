@@ -14,7 +14,7 @@ import {
   supplierTransactionsApi,
   suppliersApi,
   bankWallet,
-  walletApi,
+  wallet,
 } from "../services/api.js";
 import {
   cashTotal,
@@ -85,7 +85,7 @@ export default function Dashboard({ notify }) {
         const financialInstallmentRows = await loadFinancialInstallments(financialDebtRows);
         const financialAlertRows = await financialAlertsApi.list().catch(() => ({}));
         const bankSummaryData = await bankWallet.summary().catch(() => ({}));
-        const walletSummaryData = await walletApi.summary().catch(() => ({}));
+        const walletSummaryData = await wallet.summary().catch(() => ({}));
 
         setSummary(normalizeSummary(dashboard, cashRows, expenseRows, incomeRows, supplierRows, employeeRows));
         setActivities(buildActivities(cashRows, expenseRows, incomeRows, supplierTransactions, employeeTransactions));
@@ -124,12 +124,12 @@ export default function Dashboard({ notify }) {
   const statCards = [
     ["Bugünkü Ciro", summary.today_revenue],
     ["Bugünkü Gider", summary.today_expense, "danger"],
-    ["Bugünkü Kasa", summary.today_net, Number(summary.today_net) >= 0 ? "success" : "danger"],
+    ["Bugünkü Net", summary.today_net, Number(summary.today_net) >= 0 ? "success" : "danger"],
     ["Bu Ay Ciro", summary.month_revenue],
     ["Bu Ay Gider", summary.month_expense, "danger"],
     ["Bu Ay Net", summary.month_net, Number(summary.month_net) >= 0 ? "success" : "danger"],
     ["Toplam Firma Borcu", summary.supplier_debt_total, "warning"],
-    ["Toplam Personel Gideri", summary.employee_debt_total, "warning"],
+    ["Toplam Personel Borcu", summary.employee_debt_total, "warning"],
     { title: "💵 Cüzdan", value: money(readWalletBalance(walletSummary)), tone: "success", to: "/cuzdan" },
     ["Toplam Banka Bakiyesi", readBankTotalBalance(bankSummary), "success"],
     { title: "Toplam Finans Borcu", value: money(financialSummary.totalDebt), tone: "warning" },

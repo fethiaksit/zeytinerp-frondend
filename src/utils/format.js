@@ -106,12 +106,14 @@ export const bankTransactionTypeLabel = (value) =>
 export const walletTransactionTypeLabel = (value) =>
   ({
     opening_balance: "Açılış Bakiyesi",
-    cash_income: "Kasaya Para Girişi",
+    cash_income: "Nakit Gelir",
     cash_sale: "Nakit Satış",
-    cash_expense: "Nakit Gider",
-    cash_payment: "Kasadan Ödeme",
-    cash_withdraw: "Kasadan Çıkış",
-    cash_deposit: "Kasaya Para Yatırma",
+    pos_income: "POS Yatışı",
+    bank_income: "Banka Geliri",
+    payment: "Ödeme",
+    expense: "Gider",
+    cash_withdraw: "Para Çekme",
+    cash_deposit: "Para Yatırma",
     correction: "Düzeltme",
   })[value] || value || "-";
 

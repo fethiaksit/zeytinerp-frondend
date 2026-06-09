@@ -286,11 +286,16 @@ export const bankWallet = {
   monthlySummary: (month) => api.get("/bank-wallet/monthly-summary", { params: { month } }).then(dataOf),
 };
 
-export const walletApi = {
+export const wallet = {
   summary: () => api.get("/wallet/summary").then(dataOf),
   transactions: () => api.get("/wallet/transactions").then(dataOf),
   createTransaction: (payload) => api.post("/wallet/transactions", payload).then(dataOf),
-  removeTransaction: (id) => api.delete(`/wallet/transactions/${id}`).then(dataOf),
+  deleteTransaction: (id) => api.delete(`/wallet/transactions/${id}`).then(dataOf),
+};
+
+export const walletApi = {
+  ...wallet,
+  removeTransaction: wallet.deleteTransaction,
 };
 
 export const financialDebtsApi = {
