@@ -115,6 +115,10 @@ function dataOf(response) {
     "bank_transactions",
     "bank_wallet",
     "bank_summary",
+    "wallet",
+    "wallet_summary",
+    "wallet_transaction",
+    "wallet_transactions",
     "summary",
     "daily_summary",
     "monthly_summary",
@@ -280,6 +284,13 @@ export const bankWallet = {
   summary: () => api.get("/bank-wallet/summary").then(dataOf),
   dailySummary: (date) => api.get("/bank-wallet/daily-summary", { params: { date } }).then(dataOf),
   monthlySummary: (month) => api.get("/bank-wallet/monthly-summary", { params: { month } }).then(dataOf),
+};
+
+export const walletApi = {
+  summary: () => api.get("/wallet/summary").then(dataOf),
+  transactions: () => api.get("/wallet/transactions").then(dataOf),
+  createTransaction: (payload) => api.post("/wallet/transactions", payload).then(dataOf),
+  removeTransaction: (id) => api.delete(`/wallet/transactions/${id}`).then(dataOf),
 };
 
 export const financialDebtsApi = {

@@ -103,6 +103,18 @@ export const bankTransactionTypeLabel = (value) =>
     correction: "Düzeltme",
   })[value] || value || "-";
 
+export const walletTransactionTypeLabel = (value) =>
+  ({
+    opening_balance: "Açılış Bakiyesi",
+    cash_income: "Kasaya Para Girişi",
+    cash_sale: "Nakit Satış",
+    cash_expense: "Nakit Gider",
+    cash_payment: "Kasadan Ödeme",
+    cash_withdraw: "Kasadan Çıkış",
+    cash_deposit: "Kasaya Para Yatırma",
+    correction: "Düzeltme",
+  })[value] || value || "-";
+
 export const cashTotal = (row) =>
   Number(row?.cash_amount || 0) + Number(row?.pos_amount || 0) + Number(row?.qr_amount || 0);
 
