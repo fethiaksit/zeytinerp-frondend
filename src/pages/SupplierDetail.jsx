@@ -422,7 +422,7 @@ export default function SupplierDetail({ params, notify }) {
               <TransactionFileUpload
                 files={invoiceFiles}
                 inputKey={fileInputKey}
-                label="Makbuz / Dekont"
+                label="Makbuz / Dekont Görseli"
                 onChange={setInvoiceFiles}
                 uploading={uploadingFiles}
                 uploadingText="Makbuz / Dekont dosyaları yükleniyor..."
@@ -450,7 +450,7 @@ export default function SupplierDetail({ params, notify }) {
               <TransactionFileUpload
                 files={invoiceFiles}
                 inputKey={fileInputKey}
-                label="İade Evrakı / İade Faturası"
+                label="İade Faturası / Evrak Görseli"
                 onChange={setInvoiceFiles}
                 uploading={uploadingFiles}
                 uploadingText="İade evrakı dosyaları yükleniyor..."
@@ -892,8 +892,8 @@ function isInvoice(row) {
 }
 
 function documentLabelForType(type) {
-  if (type === "payment") return "Makbuz / Dekont";
-  if (type === "return") return "İade Evrakı / İade Faturası";
+  if (type === "payment") return "Makbuz / Dekont Görseli";
+  if (type === "return") return "İade Faturası / Evrak Görseli";
   return "Fatura Görselleri / PDF";
 }
 
