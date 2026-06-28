@@ -126,6 +126,8 @@ function dataOf(response) {
   const key = knownKeys.find((item) => body[item] !== undefined);
   return key ? body[key] : body;
 }
+const withoutEmptyParams = (params = {}) =>
+  Object.fromEntries(Object.entries(params).filter(([, value]) => value !== "" && value !== null && value !== undefined));
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const readId = (row, fallbackKey) => row?.id ?? row?.[fallbackKey];
 const readBalance = (row) => row?.balance ?? row?.current_debt ?? row?.debt ?? row?.salary_debt ?? row?.amount ?? 0;
@@ -229,14 +231,14 @@ export const dailyCashApi = {
 };
 
 export const expensesApi = {
-  list: (params = {}) => api.get("/expenses", { params }).then(dataOf),
+  list: (params = {}) => api.get("/expenses", { params: withoutEmptyParams(params) }).then(dataOf),
   create: (payload) => api.post("/expenses", payload).then(dataOf),
   update: (id, payload) => api.put(`/expenses/${id}`, payload).then(dataOf),
   remove: (id) => api.delete(`/expenses/${id}`).then(dataOf),
 };
 
 export const incomeApi = {
-  list: (params = {}) => api.get("/income-entries", { params }).then(dataOf),
+  list: (params = {}) => api.get("/income-entries", { params: withoutEmptyParams(params) }).then(dataOf),
   create: (payload) => api.post("/income-entries", payload).then(dataOf),
   update: (id, payload) => api.put(`/income-entries/${id}`, payload).then(dataOf),
   remove: (id) => api.delete(`/income-entries/${id}`).then(dataOf),
