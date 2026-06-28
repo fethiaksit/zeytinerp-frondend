@@ -106,6 +106,7 @@ function dataOf(response) {
     "daily_cash_reports",
     "cash_reports",
     "expenses",
+    "incomes",
     "income_entries",
     "products",
     "stock_movements",
@@ -128,6 +129,11 @@ function dataOf(response) {
 }
 const withoutEmptyParams = (params = {}) =>
   Object.fromEntries(Object.entries(params).filter(([, value]) => value !== "" && value !== null && value !== undefined));
+const withDateRangeParams = ({ start_date: startDate, end_date: endDate, ...params } = {}) => ({
+  ...withoutEmptyParams(params),
+  ...(startDate ? { start_date: startDate } : {}),
+  ...(endDate ? { end_date: endDate } : {}),
+});
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const readId = (row, fallbackKey) => row?.id ?? row?.[fallbackKey];
 const readBalance = (row) => row?.balance ?? row?.current_debt ?? row?.debt ?? row?.salary_debt ?? row?.amount ?? 0;
@@ -231,14 +237,22 @@ export const dailyCashApi = {
 };
 
 export const expensesApi = {
-  list: (params = {}) => api.get("/expenses", { params: withoutEmptyParams(params) }).then(dataOf),
+  list: (params = {}) => api.get("/expenses", { params: withDateRangeParams(params) }).then(dataOf),
   create: (payload) => api.post("/expenses", payload).then(dataOf),
   update: (id, payload) => api.put(`/expenses/${id}`, payload).then(dataOf),
   remove: (id) => api.delete(`/expenses/${id}`).then(dataOf),
 };
 
 export const incomeApi = {
-  list: (params = {}) => api.get("/income-entries", { params: withoutEmptyParams(params) }).then(dataOf),
+  list: async (params = {}) => {
+    const requestConfig = { params: withDateRangeParams(params) };
+    try {
+      return await api.get("/incomes", requestConfig).then(dataOf);
+    } catch (error) {
+      if (error?.response?.status === 404) return api.get("/income-entries", requestConfig).then(dataOf);
+      throw error;
+    }
+  },
   create: (payload) => api.post("/income-entries", payload).then(dataOf),
   update: (id, payload) => api.put(`/income-entries/${id}`, payload).then(dataOf),
   remove: (id) => api.delete(`/income-entries/${id}`).then(dataOf),

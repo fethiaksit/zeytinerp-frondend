@@ -138,12 +138,16 @@ export default function Expenses({ notify }) {
             <input
               type="date"
               value={filters.start_date}
-              onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
+              onChange={(e) => setFilters((current) => ({ ...current, start_date: e.target.value }))}
             />
           </label>
           <label>
             Bitiş
-            <input type="date" value={filters.end_date} onChange={(e) => setFilters({ ...filters, end_date: e.target.value })} />
+            <input
+              type="date"
+              value={filters.end_date}
+              onChange={(e) => setFilters((current) => ({ ...current, end_date: e.target.value }))}
+            />
           </label>
         </div>
         <DataTable columns={columns} rows={visibleRows} loading={loading} emptyText="Bu aralıkta gider kaydı yok." />
