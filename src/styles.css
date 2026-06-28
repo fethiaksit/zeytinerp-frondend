@@ -829,11 +829,6 @@ td {
   white-space: nowrap;
 }
 
-.compact-button {
-  min-height: 32px;
-  padding: 0 10px;
-}
-
 .primary-button,
 .secondary-button,
 .ghost-button,

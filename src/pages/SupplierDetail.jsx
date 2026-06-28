@@ -581,10 +581,6 @@ function TransactionFileUpload({ files, inputKey, label, onChange, uploading, up
     updateFiles([...files, ...Array.from(event.dataTransfer.files || [])]);
   };
 
-  const removeFileAt = (indexToRemove) => {
-    onChange(files.filter((_, index) => index !== indexToRemove));
-  };
-
   return (
     <div
       className={`span-2 file-upload-box ${dragging ? "dragging" : ""}`}
@@ -626,9 +622,6 @@ function TransactionFileUpload({ files, inputKey, label, onChange, uploading, up
                 <FileThumbnail file={file} src={preview} />
                 <strong>{file.name}</strong>
                 <small>{formatFileSize(file.size)}</small>
-                <button className="danger-button compact-button" type="button" onClick={() => removeFileAt(index)}>
-                  Sil
-                </button>
               </div>
             );
           })}
