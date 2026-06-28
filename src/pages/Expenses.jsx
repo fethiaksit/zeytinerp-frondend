@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import DataTable from "../components/DataTable.jsx";
 import Modal from "../components/Modal.jsx";
 import StatCard from "../components/StatCard.jsx";
 import { expensesApi, getErrorMessage } from "../services/api.js";
-import { categoryLabel, dateTR, filterByDateRange, money, monthStartISO, todayISO } from "../utils/format.js";
+import { categoryLabel, dateTR, money, monthStartISO, todayISO } from "../utils/format.js";
 
 const categories = ["kira", "elektrik", "su", "personel", "yakit", "yemek", "market_gideri", "diger"];
 const emptyForm = {
@@ -21,9 +21,10 @@ export default function Expenses({ notify }) {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [filters, setFilters] = useState({ start_date: monthStartISO(), end_date: todayISO() });
+  const appliedFiltersRef = useRef(filters);
   const loadRequestRef = useRef(0);
 
-  const load = async (activeFilters = filters) => {
+  const load = async (activeFilters = appliedFiltersRef.current, rememberFilters = false) => {
     const requestId = ++loadRequestRef.current;
     setLoading(true);
     try {
@@ -33,6 +34,7 @@ export default function Expenses({ notify }) {
       });
       if (requestId !== loadRequestRef.current) return;
       setRecords(Array.isArray(expenseRows) ? expenseRows : []);
+      if (rememberFilters) appliedFiltersRef.current = activeFilters;
     } catch (error) {
       if (requestId !== loadRequestRef.current) return;
       notify(getErrorMessage(error));
@@ -42,14 +44,29 @@ export default function Expenses({ notify }) {
   };
 
   useEffect(() => {
-    load({ start_date: filters.start_date, end_date: filters.end_date });
-  }, [filters.start_date, filters.end_date]);
+    load(appliedFiltersRef.current);
+  }, []);
 
-  const visibleRows = useMemo(
-    () => filterByDateRange(records, "expense_date", filters),
-    [records, filters.start_date, filters.end_date],
-  );
-  const totalExpense = visibleRows.reduce((total, row) => total + Number(row.amount || 0), 0);
+  const totalExpense = records.reduce((total, row) => total + Number(row.amount || 0), 0);
+
+  const listByDateRange = (event) => {
+    event.preventDefault();
+    const activeFilters = {
+      start_date: filters.start_date.trim(),
+      end_date: filters.end_date.trim(),
+    };
+
+    if (!activeFilters.start_date || !activeFilters.end_date) {
+      notify("Başlangıç ve bitiş tarihlerini seçin.");
+      return;
+    }
+    if (activeFilters.start_date > activeFilters.end_date) {
+      notify("Başlangıç tarihi bitiş tarihinden sonra olamaz.");
+      return;
+    }
+
+    load(activeFilters, true);
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -135,13 +152,14 @@ export default function Expenses({ notify }) {
             Gider Ekle
           </button>
         </div>
-        <div className="filter-row">
+        <form className="filter-row" onSubmit={listByDateRange}>
           <label>
             Başlangıç
             <input
               type="date"
               value={filters.start_date}
               onChange={(e) => setFilters((current) => ({ ...current, start_date: e.target.value }))}
+              required
             />
           </label>
           <label>
@@ -150,10 +168,14 @@ export default function Expenses({ notify }) {
               type="date"
               value={filters.end_date}
               onChange={(e) => setFilters((current) => ({ ...current, end_date: e.target.value }))}
+              required
             />
           </label>
-        </div>
-        <DataTable columns={columns} rows={visibleRows} loading={loading} emptyText="Bu aralıkta gider kaydı yok." />
+          <button className="primary-button" type="submit">
+            Listele
+          </button>
+        </form>
+        <DataTable columns={columns} rows={records} loading={loading} emptyText="Bu aralıkta gider kaydı yok." />
       </section>
       <Modal title={editing ? "Gider Düzenle" : "Gider Ekle"} open={modalOpen} onClose={() => setModalOpen(false)}>
         <ExpenseForm form={form} setForm={setForm} onSubmit={save} />

@@ -28,11 +28,18 @@ export const dateTimeTR = (value) => {
   }).format(new Date(value));
 };
 
-export const todayISO = () => new Date().toISOString().slice(0, 10);
+const localDateISO = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+export const todayISO = () => localDateISO(new Date());
 
 export const monthStartISO = () => {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  return localDateISO(new Date(now.getFullYear(), now.getMonth(), 1));
 };
 
 export const filterByDateRange = (rows, dateKey, { start_date: startDate, end_date: endDate }) =>

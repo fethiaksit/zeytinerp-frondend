@@ -238,15 +238,7 @@ export const expensesApi = {
 };
 
 export const incomeApi = {
-  list: async (params = {}) => {
-    const incomesUrl = withDateRangeQuery("/incomes", params);
-    try {
-      return await api.get(incomesUrl).then(dataOf);
-    } catch (error) {
-      if (error?.response?.status === 404) return api.get(withDateRangeQuery("/income-entries", params)).then(dataOf);
-      throw error;
-    }
-  },
+  list: (params = {}) => api.get(withDateRangeQuery("/income-entries", params)).then(dataOf),
   create: (payload) => api.post("/income-entries", payload).then(dataOf),
   update: (id, payload) => api.put(`/income-entries/${id}`, payload).then(dataOf),
   remove: (id) => api.delete(`/income-entries/${id}`).then(dataOf),
