@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import DataTable from "../components/DataTable.jsx";
 import Modal from "../components/Modal.jsx";
+import StatCard from "../components/StatCard.jsx";
 import { getErrorMessage, incomeApi } from "../services/api.js";
-import { categoryLabel, dateTR, money, monthStartISO, todayISO } from "../utils/format.js";
+import { categoryLabel, dateTR, filterByDateRange, money, monthStartISO, todayISO } from "../utils/format.js";
 
 const categories = ["market_satis", "tup_satis", "veresiye_tahsilat", "diger"];
 const emptyForm = {
@@ -20,21 +21,28 @@ export default function IncomeEntries({ notify }) {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [filters, setFilters] = useState({ start_date: monthStartISO(), end_date: todayISO() });
+  const loadRequestRef = useRef(0);
 
   const load = async () => {
+    const requestId = ++loadRequestRef.current;
     setLoading(true);
     try {
-      setRows(await incomeApi.list(filters));
+      const incomeRows = await incomeApi.list(filters);
+      if (requestId !== loadRequestRef.current) return;
+      setRows(filterByDateRange(incomeRows, "income_date", filters));
     } catch (error) {
+      if (requestId !== loadRequestRef.current) return;
       notify(getErrorMessage(error));
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestRef.current) setLoading(false);
     }
   };
 
   useEffect(() => {
     load();
-  }, []);
+  }, [filters.start_date, filters.end_date]);
+
+  const totalIncome = rows.reduce((total, row) => total + Number(row.amount || 0), 0);
 
   const openCreate = () => {
     setEditing(null);
@@ -106,38 +114,40 @@ export default function IncomeEntries({ notify }) {
   ];
 
   return (
-    <section className="panel">
-      <div className="panel-header">
-        <div>
-          <h2>Gelirler</h2>
-          <p>Market satış dışındaki ek gelirleri takip edin.</p>
+    <div className="page-stack">
+      <div className="stat-grid">
+        <StatCard title="Seçilen Aralık Toplam Gelir" value={money(totalIncome)} tone="success" />
+      </div>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2>Gelirler</h2>
+            <p>Market satış dışındaki ek gelirleri takip edin.</p>
+          </div>
+          <button className="primary-button" type="button" onClick={openCreate}>
+            Gelir Ekle
+          </button>
         </div>
-        <button className="primary-button" type="button" onClick={openCreate}>
-          Gelir Ekle
-        </button>
-      </div>
-      <div className="filter-row">
-        <label>
-          Başlangıç
-          <input
-            type="date"
-            value={filters.start_date}
-            onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
-          />
-        </label>
-        <label>
-          Bitiş
-          <input type="date" value={filters.end_date} onChange={(e) => setFilters({ ...filters, end_date: e.target.value })} />
-        </label>
-        <button className="secondary-button" type="button" onClick={load}>
-          Filtrele
-        </button>
-      </div>
-      <DataTable columns={columns} rows={rows} loading={loading} emptyText="Henüz gelir kaydı yok." />
+        <div className="filter-row">
+          <label>
+            Başlangıç
+            <input
+              type="date"
+              value={filters.start_date}
+              onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
+            />
+          </label>
+          <label>
+            Bitiş
+            <input type="date" value={filters.end_date} onChange={(e) => setFilters({ ...filters, end_date: e.target.value })} />
+          </label>
+        </div>
+        <DataTable columns={columns} rows={rows} loading={loading} emptyText="Bu aralıkta gelir kaydı yok." />
+      </section>
       <Modal title={editing ? "Gelir Düzenle" : "Gelir Ekle"} open={modalOpen} onClose={() => setModalOpen(false)}>
         <IncomeForm form={form} setForm={setForm} onSubmit={save} />
       </Modal>
-    </section>
+    </div>
   );
 }
 

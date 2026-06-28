@@ -35,6 +35,12 @@ export const monthStartISO = () => {
   return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
 };
 
+export const filterByDateRange = (rows, dateKey, { start_date: startDate, end_date: endDate }) =>
+  (Array.isArray(rows) ? rows : []).filter((row) => {
+    const rowDate = String(row?.[dateKey] || "").slice(0, 10);
+    return rowDate && (!startDate || rowDate >= startDate) && (!endDate || rowDate <= endDate);
+  });
+
 export const categoryLabel = (value) =>
   ({
     kira: "Kira",

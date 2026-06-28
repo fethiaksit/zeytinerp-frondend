@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import DataTable from "../components/DataTable.jsx";
 import Modal from "../components/Modal.jsx";
+import StatCard from "../components/StatCard.jsx";
 import { expensesApi, getErrorMessage } from "../services/api.js";
-import { categoryLabel, dateTR, money, monthStartISO, todayISO } from "../utils/format.js";
+import { categoryLabel, dateTR, filterByDateRange, money, monthStartISO, todayISO } from "../utils/format.js";
 
 const categories = ["kira", "elektrik", "su", "personel", "yakit", "yemek", "market_gideri", "diger"];
 const emptyForm = {
@@ -20,21 +21,28 @@ export default function Expenses({ notify }) {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [filters, setFilters] = useState({ start_date: monthStartISO(), end_date: todayISO() });
+  const loadRequestRef = useRef(0);
 
   const load = async () => {
+    const requestId = ++loadRequestRef.current;
     setLoading(true);
     try {
-      setRows(await expensesApi.list(filters));
+      const expenseRows = await expensesApi.list(filters);
+      if (requestId !== loadRequestRef.current) return;
+      setRows(filterByDateRange(expenseRows, "expense_date", filters));
     } catch (error) {
+      if (requestId !== loadRequestRef.current) return;
       notify(getErrorMessage(error));
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestRef.current) setLoading(false);
     }
   };
 
   useEffect(() => {
     load();
-  }, []);
+  }, [filters.start_date, filters.end_date]);
+
+  const totalExpense = rows.reduce((total, row) => total + Number(row.amount || 0), 0);
 
   const openCreate = () => {
     setEditing(null);
@@ -107,6 +115,9 @@ export default function Expenses({ notify }) {
 
   return (
     <div className="page-stack">
+      <div className="stat-grid">
+        <StatCard title="Seçilen Aralık Toplam Gider" value={money(totalExpense)} tone="danger" />
+      </div>
       <section className="panel">
         <div className="panel-header">
           <div>
@@ -130,9 +141,6 @@ export default function Expenses({ notify }) {
             Bitiş
             <input type="date" value={filters.end_date} onChange={(e) => setFilters({ ...filters, end_date: e.target.value })} />
           </label>
-          <button className="secondary-button" type="button" onClick={load}>
-            Filtrele
-          </button>
         </div>
         <DataTable columns={columns} rows={rows} loading={loading} emptyText="Bu aralıkta gider kaydı yok." />
       </section>
