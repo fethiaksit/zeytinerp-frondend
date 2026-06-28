@@ -23,11 +23,14 @@ export default function Expenses({ notify }) {
   const [filters, setFilters] = useState({ start_date: monthStartISO(), end_date: todayISO() });
   const loadRequestRef = useRef(0);
 
-  const load = async () => {
+  const load = async (activeFilters = filters) => {
     const requestId = ++loadRequestRef.current;
     setLoading(true);
     try {
-      const expenseRows = await expensesApi.list(filters);
+      const expenseRows = await expensesApi.list({
+        start_date: activeFilters.start_date,
+        end_date: activeFilters.end_date,
+      });
       if (requestId !== loadRequestRef.current) return;
       setRecords(Array.isArray(expenseRows) ? expenseRows : []);
     } catch (error) {
@@ -39,7 +42,7 @@ export default function Expenses({ notify }) {
   };
 
   useEffect(() => {
-    load();
+    load({ start_date: filters.start_date, end_date: filters.end_date });
   }, [filters.start_date, filters.end_date]);
 
   const visibleRows = useMemo(

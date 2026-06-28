@@ -1,5 +1,6 @@
 import axios from "axios";
 import { clearAuth, getToken } from "../utils/auth.js";
+import { withDateRangeQuery } from "../utils/apiParams.js";
 
 const configuredBaseUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://zeytinerp.herevemarket.com/api";
 
@@ -127,13 +128,6 @@ function dataOf(response) {
   const key = knownKeys.find((item) => body[item] !== undefined);
   return key ? body[key] : body;
 }
-const withoutEmptyParams = (params = {}) =>
-  Object.fromEntries(Object.entries(params).filter(([, value]) => value !== "" && value !== null && value !== undefined));
-const withDateRangeParams = ({ start_date: startDate, end_date: endDate, ...params } = {}) => ({
-  ...withoutEmptyParams(params),
-  ...(startDate ? { start_date: startDate } : {}),
-  ...(endDate ? { end_date: endDate } : {}),
-});
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const readId = (row, fallbackKey) => row?.id ?? row?.[fallbackKey];
 const readBalance = (row) => row?.balance ?? row?.current_debt ?? row?.debt ?? row?.salary_debt ?? row?.amount ?? 0;
@@ -237,7 +231,7 @@ export const dailyCashApi = {
 };
 
 export const expensesApi = {
-  list: (params = {}) => api.get("/expenses", { params: withDateRangeParams(params) }).then(dataOf),
+  list: (params = {}) => api.get(withDateRangeQuery("/expenses", params)).then(dataOf),
   create: (payload) => api.post("/expenses", payload).then(dataOf),
   update: (id, payload) => api.put(`/expenses/${id}`, payload).then(dataOf),
   remove: (id) => api.delete(`/expenses/${id}`).then(dataOf),
@@ -245,11 +239,11 @@ export const expensesApi = {
 
 export const incomeApi = {
   list: async (params = {}) => {
-    const requestConfig = { params: withDateRangeParams(params) };
+    const incomesUrl = withDateRangeQuery("/incomes", params);
     try {
-      return await api.get("/incomes", requestConfig).then(dataOf);
+      return await api.get(incomesUrl).then(dataOf);
     } catch (error) {
-      if (error?.response?.status === 404) return api.get("/income-entries", requestConfig).then(dataOf);
+      if (error?.response?.status === 404) return api.get(withDateRangeQuery("/income-entries", params)).then(dataOf);
       throw error;
     }
   },
