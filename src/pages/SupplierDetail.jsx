@@ -46,7 +46,6 @@ export default function SupplierDetail({ params, notify }) {
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [fileModal, setFileModal] = useState({ open: false, transaction: null, files: [], loading: false, activeIndex: 0 });
-  const [deletingFileId, setDeletingFileId] = useState(null);
   const [invoiceDeleteModal, setInvoiceDeleteModal] = useState({ open: false, transaction: null });
   const [deletingInvoiceId, setDeletingInvoiceId] = useState(null);
 
@@ -204,28 +203,8 @@ export default function SupplierDetail({ params, notify }) {
     }
   };
 
-  const removeFile = async (file) => {
-    const fileId = readFileId(file);
-    if (!fileId) return;
-
-    setDeletingFileId(fileId);
-    try {
-      await supplierTransactionFiles.remove(fileId);
-      const nextFiles = fileModal.files.filter((item) => readFileId(item) !== fileId);
-      setFileModal({ ...fileModal, files: nextFiles, activeIndex: Math.min(fileModal.activeIndex, Math.max(nextFiles.length - 1, 0)) });
-      setTransactions((rows) =>
-        rows.map((row) =>
-          row.id === fileModal.transaction?.id
-            ? { ...row, _files: nextFiles, _file_count: nextFiles.length, files: nextFiles }
-            : row,
-        ),
-      );
-      notify("Dosya silindi.", "success");
-    } catch (error) {
-      notify(getErrorMessage(error));
-    } finally {
-      setDeletingFileId(null);
-    }
+  const closeFileModal = () => {
+    setFileModal({ open: false, transaction: null, files: [], loading: false, activeIndex: 0 });
   };
 
   const requestInvoiceDelete = (transaction) => {
@@ -478,7 +457,8 @@ export default function SupplierDetail({ params, notify }) {
       <Modal
         title={`${documentLabelForType(fileModal.transaction?.type || "invoice")}${fileModal.transaction?.invoice_no ? ` - ${fileModal.transaction.invoice_no}` : ""}`}
         open={fileModal.open}
-        onClose={() => setFileModal({ open: false, transaction: null, files: [], loading: false, activeIndex: 0 })}
+        onClose={closeFileModal}
+        showCloseButton={false}
       >
         {fileModal.loading ? (
           <div className="state-box">Dosyalar yükleniyor...</div>
@@ -487,12 +467,15 @@ export default function SupplierDetail({ params, notify }) {
         ) : (
           <FilePreviewModal
             activeIndex={fileModal.activeIndex}
-            deletingFileId={deletingFileId}
             files={fileModal.files}
             onActiveIndexChange={(activeIndex) => setFileModal((current) => ({ ...current, activeIndex }))}
-            onRemove={removeFile}
           />
         )}
+        <div className="form-actions modal-actions">
+          <button className="ghost-button" type="button" onClick={closeFileModal}>
+            Kapat
+          </button>
+        </div>
       </Modal>
       <Modal
         title="Faturayı Sil"
@@ -644,12 +627,11 @@ function FileThumbnail({ file, src }) {
   return <span className="file-thumbnail image">Resim</span>;
 }
 
-function FilePreviewModal({ activeIndex, deletingFileId, files, onActiveIndexChange, onRemove }) {
+function FilePreviewModal({ activeIndex, files, onActiveIndexChange }) {
   const boundedIndex = Math.min(activeIndex, Math.max(files.length - 1, 0));
   const file = files[boundedIndex];
   const fileUrl = resolveFileUrl(file);
   const fileName = readFileName(file);
-  const fileId = readFileId(file);
   const hasMultipleFiles = files.length > 1;
 
   const goPrevious = () => {
@@ -669,9 +651,6 @@ function FilePreviewModal({ activeIndex, deletingFileId, files, onActiveIndexCha
             <strong>{fileName}</strong>
             <small>{formatFileSize(readFileSize(file))}</small>
           </div>
-          <button className="danger-button" type="button" disabled={deletingFileId === fileId} onClick={() => onRemove(file)}>
-            {deletingFileId === fileId ? "Siliniyor..." : "Sil"}
-          </button>
         </div>
         <FilePreviewBody file={file} fileName={fileName} fileUrl={fileUrl} />
         <div className="file-preview-actions">

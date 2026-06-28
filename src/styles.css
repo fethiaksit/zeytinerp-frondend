@@ -612,6 +612,13 @@ td {
   gap: 10px;
 }
 
+/* File and image previews are intentionally read-only. */
+.file-upload-box :is(.remove, .delete, .file-remove, .image-remove, .preview-remove, .upload-remove, .close, .x),
+.selected-files :is(.remove, .delete, .file-remove, .image-remove, .preview-remove, .upload-remove, .close, .x),
+.invoice-preview-list :is(.remove, .delete, .file-remove, .image-remove, .preview-remove, .upload-remove, .close, .x) {
+  display: none !important;
+}
+
 .file-upload-box {
   border: 1px dashed var(--line);
   border-radius: var(--radius);

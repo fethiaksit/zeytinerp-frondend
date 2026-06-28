@@ -1,4 +1,4 @@
-export default function Modal({ title, open, onClose, children }) {
+export default function Modal({ title, open, onClose, children, showCloseButton = true }) {
   if (!open) return null;
 
   return (
@@ -6,9 +6,11 @@ export default function Modal({ title, open, onClose, children }) {
       <div className="modal-card">
         <div className="panel-header">
           <h2>{title}</h2>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="Kapat">
-            ×
-          </button>
+          {showCloseButton && (
+            <button className="icon-button" type="button" onClick={onClose} aria-label="Kapat">
+              ×
+            </button>
+          )}
         </div>
         {children}
       </div>
