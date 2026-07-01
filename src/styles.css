@@ -382,6 +382,92 @@ h2 {
   color: var(--muted);
 }
 
+.today-visits-panel {
+  border-color: #bfdcc5;
+  background: #fbfefb;
+}
+
+.today-visits-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-visit-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 13px 14px;
+  background: var(--surface);
+}
+
+.today-visit-identity {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.today-visit-name {
+  overflow: hidden;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--primary-dark);
+  font-weight: 900;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-visit-name:hover,
+.today-visit-name:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+.today-visit-identity span,
+.today-visit-debt span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.today-visit-debt {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 4px;
+  text-align: right;
+}
+
+.today-visit-debt strong {
+  color: var(--warning);
+  font-size: 0.95rem;
+}
+
+.today-visits-state {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.today-visits-state.error {
+  border-color: #efc8c1;
+  background: #fff5f3;
+  color: var(--danger);
+}
+
 .stat-card {
   display: grid;
   gap: 7px;
@@ -1330,6 +1416,14 @@ label {
   .panel-header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .today-visits-list {
+    grid-template-columns: 1fr;
+  }
+
+  .today-visit-item {
+    align-items: flex-start;
   }
 
   .row-actions {

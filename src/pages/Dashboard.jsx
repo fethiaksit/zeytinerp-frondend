@@ -54,6 +54,9 @@ export default function Dashboard({ notify }) {
   const [bankSummary, setBankSummary] = useState({});
   const [walletSummary, setWalletSummary] = useState({});
   const [loading, setLoading] = useState(true);
+  const [todayVisits, setTodayVisits] = useState([]);
+  const [todayVisitsLoading, setTodayVisitsLoading] = useState(true);
+  const [todayVisitsError, setTodayVisitsError] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -102,6 +105,32 @@ export default function Dashboard({ notify }) {
       }
     };
     load();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadTodayVisits = async () => {
+      setTodayVisitsLoading(true);
+      setTodayVisitsError("");
+      try {
+        const rows = await suppliersApi.todayVisits();
+        if (!Array.isArray(rows)) throw new Error("Bugün gelecek firma verisi alınamadı.");
+        if (active) setTodayVisits(rows);
+      } catch (error) {
+        if (active) {
+          setTodayVisits([]);
+          setTodayVisitsError(getErrorMessage(error));
+        }
+      } finally {
+        if (active) setTodayVisitsLoading(false);
+      }
+    };
+
+    loadTodayVisits();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const topDebtors = useMemo(
@@ -203,6 +232,19 @@ export default function Dashboard({ notify }) {
           )
         ))}
       </div>
+      <section className="panel today-visits-panel" aria-labelledby="today-visits-title">
+        <div className="panel-header">
+          <div>
+            <h2 id="today-visits-title">Bugün Gelecek Firmalar</h2>
+            <p>Bugün için planlanan firma ziyaretleri.</p>
+          </div>
+        </div>
+        <TodayVisitsCardContent
+          rows={todayVisits}
+          loading={todayVisitsLoading}
+          error={todayVisitsError}
+        />
+      </section>
       <div className="content-grid">
         <section className="panel">
           <div className="panel-header">
@@ -233,6 +275,43 @@ export default function Dashboard({ notify }) {
       </section>
     </div>
   );
+}
+
+function TodayVisitsCardContent({ rows, loading, error }) {
+  if (loading) return <div className="today-visits-state">Firmalar yükleniyor...</div>;
+  if (error) return <div className="today-visits-state error">Firmalar yüklenemedi: {error}</div>;
+  if (!rows.length) return <div className="today-visits-state">Bugün gelecek firma bulunmuyor.</div>;
+
+  return (
+    <ul className="today-visits-list">
+      {rows.map((firm, index) => {
+        const debt = readFirmDebt(firm);
+        return (
+          <li className="today-visit-item" key={firm.id || index}>
+            <div className="today-visit-identity">
+              <button className="today-visit-name" type="button" onClick={() => navigate(`/firmalar/${firm.id}`)}>
+                {firm.name || "İsimsiz firma"}
+              </button>
+              {firm.phone && <span>{firm.phone}</span>}
+            </div>
+            {debt !== null && (
+              <div className="today-visit-debt">
+                <span>Mevcut borç</span>
+                <strong>{money(debt)}</strong>
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function readFirmDebt(firm) {
+  const value = firm.current_debt ?? firm.debt ?? firm.balance;
+  if (value === undefined || value === null || value === "") return null;
+  const debt = Number(value);
+  return Number.isFinite(debt) ? debt : null;
 }
 
 function normalizeSummary(dashboard, cashRows, expenseRows, incomeRows, supplierRows, employeeRows) {
