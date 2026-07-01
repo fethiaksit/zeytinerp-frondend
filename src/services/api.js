@@ -245,6 +245,7 @@ export const dailyCashApi = {
 
 export const expensesApi = {
   list: (params = {}) => api.get(withDateRangeQuery("/expenses", params)).then(dataOf),
+  byDate: (date) => api.get("/expenses/by-date", { params: { date } }).then(dataOf),
   create: (payload) => api.post("/expenses", payload).then(dataOf),
   update: (id, payload) => api.put(`/expenses/${id}`, payload).then(dataOf),
   remove: (id) => api.delete(`/expenses/${id}`).then(dataOf),
