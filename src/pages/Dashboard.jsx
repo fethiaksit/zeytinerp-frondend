@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DataTable from "../components/DataTable.jsx";
+import ExpenseDetailModal from "../components/ExpenseDetailModal.jsx";
 import StatCard from "../components/StatCard.jsx";
 import {
   dailyCashApi,
@@ -44,6 +45,8 @@ const emptySummary = {
   employee_debt_total: 0,
 };
 
+const emptyExpenseDetail = { date: "", rows: [], loading: false, error: "" };
+
 export default function Dashboard({ notify }) {
   const [summary, setSummary] = useState(emptySummary);
   const [suppliers, setSuppliers] = useState([]);
@@ -57,6 +60,8 @@ export default function Dashboard({ notify }) {
   const [todayVisits, setTodayVisits] = useState([]);
   const [todayVisitsLoading, setTodayVisitsLoading] = useState(true);
   const [todayVisitsError, setTodayVisitsError] = useState("");
+  const [expenseDetail, setExpenseDetail] = useState(emptyExpenseDetail);
+  const expenseDetailRequestRef = useRef(0);
 
   useEffect(() => {
     const load = async () => {
@@ -107,6 +112,36 @@ export default function Dashboard({ notify }) {
     load();
   }, []);
 
+  useEffect(() => () => {
+    expenseDetailRequestRef.current += 1;
+  }, []);
+
+  const openTodayExpenses = async () => {
+    const date = todayISO();
+    const requestId = expenseDetailRequestRef.current + 1;
+    expenseDetailRequestRef.current = requestId;
+    setExpenseDetail({ date, rows: [], loading: true, error: "" });
+
+    try {
+      const response = await expensesApi.byDate(date);
+      if (expenseDetailRequestRef.current !== requestId) return;
+      setExpenseDetail({ date, rows: expenseRowsOf(response), loading: false, error: "" });
+    } catch (error) {
+      if (expenseDetailRequestRef.current !== requestId) return;
+      setExpenseDetail({
+        date,
+        rows: [],
+        loading: false,
+        error: `Gider detayları yüklenemedi: ${getErrorMessage(error)}`,
+      });
+    }
+  };
+
+  const closeExpenseDetail = () => {
+    expenseDetailRequestRef.current += 1;
+    setExpenseDetail(emptyExpenseDetail);
+  };
+
   useEffect(() => {
     let active = true;
 
@@ -152,7 +187,13 @@ export default function Dashboard({ notify }) {
 
   const statCards = [
     ["Bugünkü Ciro", summary.today_revenue],
-    ["Bugünkü Gider", summary.today_expense, "danger"],
+    {
+      title: "Bugünkü Gider",
+      value: money(summary.today_expense),
+      tone: "danger",
+      onClick: openTodayExpenses,
+      ariaLabel: `Bugünkü gider detaylarını aç, ${money(summary.today_expense)}`,
+    },
     ["Bugünkü Net", summary.today_net, Number(summary.today_net) >= 0 ? "success" : "danger"],
     ["Bu Ay Ciro", summary.month_revenue],
     ["Bu Ay Gider", summary.month_expense, "danger"],
@@ -222,8 +263,14 @@ export default function Dashboard({ notify }) {
         {statCards.map((card) => (
           Array.isArray(card) ? (
             <StatCard key={card[0]} title={card[0]} value={money(card[1])} tone={card[2] || "default"} />
-          ) : card.to ? (
-            <button key={card.title} className={`stat-card stat-card-button ${card.tone || "default"}`} type="button" onClick={() => navigate(card.to)}>
+          ) : card.to || card.onClick ? (
+            <button
+              key={card.title}
+              className={`stat-card stat-card-button ${card.tone || "default"}`}
+              type="button"
+              onClick={card.onClick || (() => navigate(card.to))}
+              aria-label={card.ariaLabel}
+            >
               <span>{card.title}</span>
               <strong>{card.value}</strong>
             </button>
@@ -273,8 +320,23 @@ export default function Dashboard({ notify }) {
         </div>
         <DataTable columns={upcomingColumns} rows={upcomingFinancialInstallments} loading={loading} emptyText="Yaklaşan finans taksiti bulunmuyor." />
       </section>
+      <ExpenseDetailModal
+        detail={expenseDetail}
+        onClose={closeExpenseDetail}
+        onRetry={openTodayExpenses}
+      />
     </div>
   );
+}
+
+function expenseRowsOf(response) {
+  if (Array.isArray(response)) return response;
+  const containers = [response, response?.data];
+  for (const container of containers) {
+    const rows = container?.expenses ?? container?.items ?? container?.results ?? container?.records;
+    if (Array.isArray(rows)) return rows;
+  }
+  return [];
 }
 
 function TodayVisitsCardContent({ rows, loading, error }) {
