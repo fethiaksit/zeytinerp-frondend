@@ -101,6 +101,9 @@ function dataOf(response) {
     "alerts",
     "suppliers",
     "supplier_balances",
+    "firms",
+    "today_visits",
+    "visits",
     "balances",
     "employees",
     "employee_balances",
@@ -178,6 +181,16 @@ export const suppliersApi = {
   remove: (id) => api.delete(`/suppliers/${id}`).then(dataOf),
   balance: (id) => api.get(`/suppliers/${id}/balance`).then(dataOf),
   balances: () => api.get("/suppliers-balances").then(dataOf),
+  todayVisits: () => api.get("/firms/today-visits").then(dataOf),
+  visits: (day) => api.get("/firms/visits", { params: { day } }).then(dataOf),
+  todayVisitsWithBalances: async () => {
+    const [rows, balances] = await Promise.all([suppliersApi.todayVisits(), suppliersApi.balances()]);
+    return mergeBalances(rows, balances, "supplier_id");
+  },
+  visitsWithBalances: async (day) => {
+    const [rows, balances] = await Promise.all([suppliersApi.visits(day), suppliersApi.balances()]);
+    return mergeBalances(rows, balances, "supplier_id");
+  },
 };
 
 export const supplierTransactionsApi = {

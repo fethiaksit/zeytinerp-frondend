@@ -473,6 +473,31 @@ td {
   width: min(420px, 100%);
 }
 
+.visit-filter-field {
+  width: min(260px, 100%);
+}
+
+.visit-filter-note {
+  margin: -4px 0 14px;
+  border-left: 3px solid var(--primary);
+  padding: 9px 12px;
+  background: var(--surface-soft);
+  color: var(--primary-dark);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.visit-day-badges {
+  display: flex;
+  max-width: 300px;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.muted-text {
+  color: var(--muted);
+}
+
 .bank-account-form {
   margin-bottom: 16px;
 }
@@ -1006,6 +1031,61 @@ label {
   height: 18px;
 }
 
+.visit-days-fieldset {
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.visit-days-fieldset legend {
+  padding: 0 5px;
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.visit-days-fieldset p {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.visit-day-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.visit-day-option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 9px;
+  background: #fbfcfa;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.visit-day-option:has(input:checked) {
+  border-color: #9bc7aa;
+  background: #edf8ef;
+}
+
+.visit-day-option input {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+.visit-day-short {
+  display: none;
+}
+
 .state-box {
   display: grid;
   min-height: 120px;
@@ -1254,6 +1334,26 @@ label {
 
   .row-actions {
     min-width: 240px;
+  }
+
+  .filter-row > label {
+    width: 100%;
+  }
+
+  .visit-day-options {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .visit-day-option {
+    justify-content: center;
+  }
+
+  .visit-day-long {
+    display: none;
+  }
+
+  .visit-day-short {
+    display: inline;
   }
 
   .bank-card-footer {
