@@ -193,6 +193,15 @@ export const suppliersApi = {
   },
 };
 
+export const customersApi = {
+  list: (params = {}) => api.get("/admin/customers", { params }).then(dataOf),
+  get: (id) => api.get(`/admin/customers/${id}`).then(dataOf),
+  create: (payload) => api.post("/admin/customers", payload).then(dataOf),
+  update: (id, payload) => api.put(`/admin/customers/${id}`, payload).then(dataOf),
+  remove: (id) => api.delete(`/admin/customers/${id}`).then(dataOf),
+  balance: (id) => api.get(`/admin/customers/${id}/balance`).then(dataOf),
+};
+
 export const supplierTransactionsApi = {
   list: (params = {}) => api.get("/supplier-transactions", { params }).then(dataOf),
   create: (payload) => api.post("/supplier-transactions", payload).then(dataOf),
