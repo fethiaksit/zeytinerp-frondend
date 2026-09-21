@@ -3,6 +3,7 @@ import { clearAuth } from "../utils/auth.js";
 const links = [
   { path: "/", label: "Dashboard", icon: "▣" },
   { path: "/firmalar", label: "Firmalar", icon: "◆" },
+  { path: "/cari-musteriler", label: "Cari Müşteriler", icon: "◉" },
   { path: "/personel", label: "Personel", icon: "●" },
   { path: "/gunluk-kasa", label: "Günlük Kasa", icon: "₺" },
   { path: "/cuzdan", label: "Cüzdan", icon: "💵" },
