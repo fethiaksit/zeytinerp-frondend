@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import DataTable from "../components/DataTable.jsx";
+import { useEffect, useState } from "react";
 import Modal from "../components/Modal.jsx";
 import { customersApi, getErrorMessage } from "../services/api.js";
 import { money } from "../utils/format.js";
@@ -13,6 +12,18 @@ const emptyForm = {
   is_active: true,
 };
 
+const textValue = (value) => {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  return "";
+};
+
+const numberValue = (value) => {
+  if (value === null || value === undefined || value === "") return 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 export default function Customers({ notify }) {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,10 +35,18 @@ export default function Customers({ notify }) {
   const load = async () => {
     setLoading(true);
     try {
-      const rows = await customersApi.list();
-      setCustomers(Array.isArray(rows) ? rows : []);
+      const result = await customersApi.list();
+      const rows = Array.isArray(result)
+        ? result
+        : Array.isArray(result?.data)
+          ? result.data
+          : Array.isArray(result?.customers)
+            ? result.customers
+            : [];
+      setCustomers(rows);
     } catch (error) {
-      notify(getErrorMessage(error));
+      setCustomers([]);
+      notify?.(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -46,27 +65,35 @@ export default function Customers({ notify }) {
   const openEdit = (customer) => {
     setEditing(customer);
     setForm({
-      name: customer.name || "",
-      phone: customer.phone || "",
-      address: customer.address || "",
-      credit_limit: customer.credit_limit ?? "",
-      note: customer.note || "",
-      is_active: customer.is_active ?? true,
+      name: textValue(customer?.name),
+      phone: textValue(customer?.phone),
+      address: textValue(customer?.address),
+      credit_limit: customer?.credit_limit == null ? "" : textValue(customer.credit_limit),
+      note: textValue(customer?.note),
+      is_active: customer?.is_active !== false,
     });
     setModalOpen(true);
   };
 
   const save = async (event) => {
     event.preventDefault();
+
     const name = form.name.trim();
     const phone = form.phone.trim();
 
     if (!name) {
-      notify("Müşteri adı zorunludur.");
+      notify?.("Müşteri adı zorunludur.");
       return;
     }
+
     if (!phone) {
-      notify("Telefon numarası zorunludur.");
+      notify?.("Telefon numarası zorunludur.");
+      return;
+    }
+
+    const creditLimit = form.credit_limit === "" ? null : Number(form.credit_limit);
+    if (creditLimit !== null && (!Number.isFinite(creditLimit) || creditLimit < 0)) {
+      notify?.("Kredi limiti 0 veya daha büyük olmalıdır.");
       return;
     }
 
@@ -76,92 +103,47 @@ export default function Customers({ notify }) {
       address: form.address.trim(),
       note: form.note.trim(),
       is_active: Boolean(form.is_active),
-      credit_limit: form.credit_limit === "" ? null : Number(form.credit_limit),
+      credit_limit: creditLimit,
     };
 
-    if (payload.credit_limit !== null && (!Number.isFinite(payload.credit_limit) || payload.credit_limit < 0)) {
-      notify("Kredi limiti 0 veya daha büyük olmalıdır.");
-      return;
-    }
-
     try {
-      if (editing) {
+      if (editing?.id) {
         await customersApi.update(editing.id, payload);
-        notify("Cari müşteri güncellendi.", "success");
+        notify?.("Cari müşteri güncellendi.", "success");
       } else {
         await customersApi.create(payload);
-        notify("Cari müşteri eklendi.", "success");
+        notify?.("Cari müşteri eklendi.", "success");
       }
+
       setModalOpen(false);
       setEditing(null);
       setForm(emptyForm);
       await load();
     } catch (error) {
-      notify(getErrorMessage(error));
+      notify?.(getErrorMessage(error));
     }
   };
 
   const deactivate = async (customer) => {
-    if (!window.confirm(`${customer.name} cari hesabı pasife alınsın mı?`)) return;
+    if (!customer?.id) return;
+    if (!window.confirm(`${textValue(customer.name) || "Bu müşteri"} cari hesabı pasife alınsın mı?`)) return;
+
     try {
       await customersApi.remove(customer.id);
-      notify("Cari müşteri pasife alındı.", "success");
+      notify?.("Cari müşteri pasife alındı.", "success");
       await load();
     } catch (error) {
-      notify(getErrorMessage(error));
+      notify?.(getErrorMessage(error));
     }
   };
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLocaleLowerCase("tr-TR");
-    if (!q) return customers;
-    return customers.filter((customer) => {
-      const haystack = `${customer.name || ""} ${customer.phone || ""}`.toLocaleLowerCase("tr-TR");
-      return haystack.includes(q);
-    });
-  }, [customers, query]);
-
-  const columns = [
-    { key: "name", header: "Müşteri" },
-    { key: "phone", header: "Telefon" },
-    {
-      key: "balance",
-      header: "Bakiye",
-      align: "right",
-      render: (row) => money(row.balance ?? 0),
-    },
-    {
-      key: "credit_limit",
-      header: "Kredi Limiti",
-      align: "right",
-      render: (row) => (row.credit_limit == null ? "—" : money(row.credit_limit)),
-    },
-    {
-      key: "status",
-      header: "Durum",
-      render: (row) => (
-        <span className={`badge ${row.is_active ? "success" : "muted"}`}>
-          {row.is_active ? "Aktif" : "Pasif"}
-        </span>
-      ),
-    },
-    {
-      key: "actions",
-      header: "İşlem",
-      render: (row) => (
-        <div className="row-actions">
-          <button className="ghost-button" type="button" onClick={() => openEdit(row)}>
-            Düzenle
-          </button>
-          {row.is_active && (
-            <button className="danger-button" type="button" onClick={() => deactivate(row)}>
-              Pasife Al
-            </button>
-          )}
-        </div>
-      ),
-    },
-  ];
+  const q = query.trim().toLocaleLowerCase("tr-TR");
+  const filtered = customers.filter((customer) => {
+    if (!q) return true;
+    const name = textValue(customer?.name).toLocaleLowerCase("tr-TR");
+    const phone = textValue(customer?.phone).toLocaleLowerCase("tr-TR");
+    return name.includes(q) || phone.includes(q);
+  });
 
   return (
     <section className="panel">
@@ -185,12 +167,55 @@ export default function Customers({ notify }) {
         />
       </div>
 
-      <DataTable
-        columns={columns}
-        rows={filtered}
-        loading={loading}
-        emptyText="Henüz cari müşteri kaydı yok."
-      />
+      {loading ? (
+        <div className="state-box">Yükleniyor...</div>
+      ) : filtered.length === 0 ? (
+        <div className="state-box empty">Henüz cari müşteri kaydı yok.</div>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Müşteri</th>
+                <th>Telefon</th>
+                <th className="right">Bakiye</th>
+                <th className="right">Kredi Limiti</th>
+                <th>Durum</th>
+                <th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((customer, index) => (
+                <tr key={customer?.id ?? index}>
+                  <td>{textValue(customer?.name) || "-"}</td>
+                  <td>{textValue(customer?.phone) || "-"}</td>
+                  <td className="right">{money(numberValue(customer?.balance))}</td>
+                  <td className="right">
+                    {customer?.credit_limit == null ? "—" : money(numberValue(customer.credit_limit))}
+                  </td>
+                  <td>
+                    <span className={`badge ${customer?.is_active !== false ? "success" : "muted"}`}>
+                      {customer?.is_active !== false ? "Aktif" : "Pasif"}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="row-actions">
+                      <button className="ghost-button" type="button" onClick={() => openEdit(customer)}>
+                        Düzenle
+                      </button>
+                      {customer?.is_active !== false && (
+                        <button className="danger-button" type="button" onClick={() => deactivate(customer)}>
+                          Pasife Al
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <Modal
         title={editing ? "Cari Müşteri Düzenle" : "Cari Müşteri Ekle"}
