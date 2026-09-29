@@ -1690,3 +1690,30 @@ label {
     padding-left: 0;
   }
 }
+
+
+/* Product label printing */
+.label-count { display: inline-flex; align-items: center; gap: 6px; }
+.label-count button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font-weight: 900; }
+.label-count input { width: 58px; height: 34px; border: 1px solid var(--line); border-radius: 6px; text-align: center; }
+.label-sheet { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+.product-label { display: grid; align-content: center; justify-items: center; overflow: hidden; border: 1px dashed #aab5ad; background: #fff; color: #000; text-align: center; padding: 2mm; }
+.label-size-50x30 .product-label { width: 50mm; height: 30mm; }
+.label-size-40x30 .product-label { width: 40mm; height: 30mm; }
+.label-size-50x40 .product-label { width: 50mm; height: 40mm; }
+.label-name { max-width: 100%; font-size: 10pt; font-weight: 800; line-height: 1.05; }
+.label-price { margin: 1.5mm 0; font-size: 19pt; font-weight: 950; line-height: 1; }
+.label-barcode-number { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 8pt; letter-spacing: .3px; }
+
+@media screen {
+  .label-sheet { margin-top: 4px; }
+}
+
+@media print {
+  @page { margin: 0; }
+  body { background: #fff !important; }
+  .sidebar, .topbar, .no-print { display: none !important; }
+  .app-shell, .content-shell, .page-content, .page-stack { display: block !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; }
+  .label-sheet { display: flex !important; gap: 0 !important; margin: 0 !important; padding: 0 !important; }
+  .product-label { break-inside: avoid; border: 0; box-shadow: none; }
+}
