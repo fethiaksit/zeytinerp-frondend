@@ -13,7 +13,6 @@ const links = [
   { path: "/finans-merkezi", label: "FINANS MERKEZİ", icon: "▤" },
   { path: "/giderler", label: "Giderler", icon: "↓" },
   { path: "/gelirler", label: "Gelirler", icon: "↑" },
-  { path: "/etiket-yazdir", label: "Etiket Yazdır", icon: "🏷" },
 ];
 
 function isActive(activePath, linkPath) {
