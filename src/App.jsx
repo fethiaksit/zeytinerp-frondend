@@ -20,6 +20,7 @@ import Reports from "./pages/Reports.jsx";
 import BankWallet from "./pages/BankWallet.jsx";
 import Wallet from "./pages/Wallet.jsx";
 import Customers from "./pages/Customers.jsx";
+import LabelPrint from "./pages/LabelPrint.jsx";
 const routes = [
   { path: "/", title: "Dashboard", component: Dashboard },
   { path: "/cuzdan", title: "Cüzdan", component: Wallet },
@@ -36,6 +37,7 @@ const routes = [
   { path: "/giderler", title: "Giderler", component: Expenses },
   { path: "/gelirler", title: "Gelirler", component: IncomeEntries },
   { path: "/raporlar", title: "Raporlar", component: Reports },
+  { path: "/etiket-yazdir", title: "Etiket Yazdır", component: LabelPrint },
 ];
 
 function readToken() {
